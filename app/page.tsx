@@ -231,7 +231,7 @@ export default function Home() {
     <div className="min-h-screen bg-background max-w-lg mx-auto">
       <StoreHeader
         storeName={settings?.nome_loja}
-        userName="Joana"
+        userName="Cliente"
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
         logoUrl={settings?.logo_url}
