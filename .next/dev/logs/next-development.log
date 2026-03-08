@@ -1,0 +1,22 @@
+[00:00:01.076] Server  LOG     
+[00:00:01.076] Server  LOG       We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+[00:00:01.076] Server  LOG       The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+[00:00:01.077] Server  LOG       	- include was updated to add '.next/dev/types/**/*.ts'
+[00:00:01.077] Server  LOG     
+[00:00:01.246] Server  LOG     ✓ Ready in 799ms
+[00:00:28.536] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:30.082] Browser WARN    Image with src "/images/tomate.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[00:00:48.484] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:01:02.051] Browser WARN    GoTrueClient@sb-vkumsusmkyxmhgraqdms-auth-token:1 (2.98.0) 2026-03-08T01:36:43.042Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:02:47.044] Browser ERROR   Erro ao fazer upload da imagem: {"message":"new row violates row-level security policy","name":"StorageApiError","status":400,"statusCode":"403"}
+[00:03:17.523] Browser ERROR   Erro ao fazer upload da imagem: {"message":"new row violates row-level security policy","name":"StorageApiError","status":400,"statusCode":"403"}
+[00:08:31.362] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:31.362] Browser WARN    GoTrueClient@sb-vkumsusmkyxmhgraqdms-auth-token:1 (2.98.0) 2026-03-08T01:44:12.456Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:08:50.061] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:08:50.170] Browser WARN    GoTrueClient@sb-vkumsusmkyxmhgraqdms-auth-token:1 (2.98.0) 2026-03-08T01:44:31.163Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+[00:12:01.632] Server  LOG     ✓ Compiled in 107ms
+[00:15:42.495] Server  LOG     ✓ Compiled in 83ms
+[00:15:51.159] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:15:51.159] Browser WARN    GoTrueClient@sb-vkumsusmkyxmhgraqdms-auth-token:1 (2.98.0) 2026-03-08T01:51:32.254Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.

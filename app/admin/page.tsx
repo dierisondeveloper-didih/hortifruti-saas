@@ -37,7 +37,8 @@ function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
   return {
     id: String(row.id),
     name,
-    image: getProductImage(name),
+    // A MÁGICA 1: Tenta usar a imagem do banco, se não tiver, usa a genérica
+    image: row.imagem_url ? String(row.imagem_url) : getProductImage(name),
     price: Number(row.preco ?? 0),
     unit: String(row.unidade ?? "kg"),
     videoStatus,
@@ -113,7 +114,8 @@ export default function AdminPage() {
           unit: String(row.unidade ?? "kg"),
           stock: Number(row.estoque ?? 0),
           category: String(row.categoria ?? ""),
-          image: getProductImage(String(row.nome ?? "")),
+          // A MÁGICA 2: Tenta usar a imagem do banco para a lista de gerenciamento também
+          image: row.imagem_url ? String(row.imagem_url) : getProductImage(String(row.nome ?? "")),
         }))
       )
     }
@@ -150,6 +152,7 @@ export default function AdminPage() {
           unidade: data.unidade,
           estoque: data.estoque,
           categoria: data.categoria,
+          imagem_url: data.imagem_url || null, // A MÁGICA 3: Salvando a foto no banco!
         })
 
         if (insertError) {
@@ -185,6 +188,7 @@ export default function AdminPage() {
             unidade: data.unidade,
             estoque: data.estoque,
             categoria: data.categoria,
+            imagem_url: data.imagem_url || null, // A MÁGICA 4: Atualizando a foto no banco!
           })
           .eq("id", data.id)
 
@@ -235,17 +239,11 @@ export default function AdminPage() {
     [fetchProducts]
   )
 
-  /**
-   * Called when the shopkeeper stops recording in the CameraModal.
-   * Uploads the video blob to Supabase Storage, gets the public URL,
-   * then updates `ultimo_video_em` and `video_url` in the produtos table.
-   */
   const handleVideoSave = useCallback(
     async (productId: string, videoBlob?: Blob) => {
       setIsSaving(true)
 
       try {
-        // If no video blob, just update the timestamp
         if (!videoBlob) {
           console.log("[v0] Nenhum blob de video recebido, atualizando apenas timestamp")
           const { error: updateError } = await supabase
@@ -263,7 +261,6 @@ export default function AdminPage() {
           return
         }
 
-        // Upload video to Supabase Storage
         const timestamp = Date.now()
         const fileName = `${productId}_${timestamp}.webm`
 
@@ -276,7 +273,6 @@ export default function AdminPage() {
             upsert: true,
           })
 
-        // STRICT CHECK: If upload fails, alert and STOP
         if (uploadError) {
           console.error("[v0] Erro no upload:", uploadError)
           alert("Erro no upload: " + uploadError.message)
@@ -288,7 +284,6 @@ export default function AdminPage() {
 
         console.log("[v0] Upload concluido com sucesso:", uploadData)
 
-        // Get the public URL
         const { data: urlData } = supabase.storage
           .from("videos_produtos")
           .getPublicUrl(fileName)
@@ -297,7 +292,6 @@ export default function AdminPage() {
 
         console.log("[v0] URL Gerada:", publicUrl)
 
-        // STRICT CHECK: If no publicUrl, alert and STOP
         if (!publicUrl) {
           alert("Erro: Nao foi possivel obter a URL publica do video")
           setIsSaving(false)
@@ -306,7 +300,6 @@ export default function AdminPage() {
           return
         }
 
-        // ONLY if we have a valid publicUrl, update the database
         const { error: updateError } = await supabase
           .from("produtos")
           .update({
@@ -326,7 +319,6 @@ export default function AdminPage() {
 
         console.log("[v0] Produto atualizado com sucesso! video_url:", publicUrl)
 
-        // Refresh the full list so status badges update
         await fetchProducts()
 
       } catch (err) {
@@ -341,7 +333,6 @@ export default function AdminPage() {
     [fetchProducts]
   )
 
-  // Placeholder for unimplemented tabs
   const renderPlaceholderTab = (title: string) => (
     <div className="flex flex-col items-center justify-center py-20 px-6 gap-4 text-center">
       <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
@@ -356,7 +347,6 @@ export default function AdminPage() {
     </div>
   )
 
-  // Show loading while checking auth
   if (isAuthChecking || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -372,7 +362,6 @@ export default function AdminPage() {
     <div className="min-h-screen bg-background max-w-lg mx-auto">
       <AdminHeader onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
 
-      {/* Sidebar */}
       <AdminSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -380,7 +369,6 @@ export default function AdminPage() {
         onTabChange={setActiveTab}
       />
 
-      {/* Loading state */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -390,7 +378,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Error state */}
       {!isLoading && error && (
         <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
           <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -414,10 +401,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Content based on active tab */}
       {!isLoading && !error && (
         <>
-          {/* Videos Tab - Current interface */}
           {activeTab === "videos" && (
             <>
               <AdminStatusPanel
@@ -431,7 +416,6 @@ export default function AdminPage() {
             </>
           )}
 
-          {/* Products Tab - CRUD interface */}
           {activeTab === "products" && (
             <ProductManagement
               products={managedProducts}
@@ -442,17 +426,14 @@ export default function AdminPage() {
             />
           )}
 
-          {/* Categories Tab - CRUD interface */}
           {activeTab === "categories" && <CategoryManagement />}
 
-          {/* Orders/Customers Tab - Dashboard */}
           {activeTab === "customers" && <OrdersManagement onStockChange={fetchProducts} />}
 
           {activeTab === "settings" && <SettingsForm />}
         </>
       )}
 
-      {/* Saving overlay */}
       {isSaving && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border shadow-lg">

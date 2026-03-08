@@ -84,6 +84,7 @@ export function ProductManagement({
       unidade: product.unit,
       estoque: product.stock,
       categoria: product.category,
+      imagem_url: product.image, // <--- AQUI ESTÁ A MÁGICA ADICIONADA!
     })
     setIsModalOpen(true)
   }
@@ -166,7 +167,7 @@ export function ProductManagement({
               {/* Thumbnail */}
               <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-muted">
                 <Image
-                  src={product.image}
+                  src={product.image || "https://images.unsplash.com/photo-1610397962076-02407a169a5b?q=80&w=200&auto=format&fit=crop"} // Garantia de não quebrar
                   alt={product.name}
                   fill
                   className="object-cover"

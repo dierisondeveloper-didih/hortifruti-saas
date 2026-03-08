@@ -1,7 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Package } from "lucide-react"
+import { X, Package, ImagePlus, Loader2 } from "lucide-react"
+import { createClient } from "@supabase/supabase-js"
+
+// Conectando com o seu banco Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface ProductFormData {
   id?: string
@@ -10,6 +16,7 @@ export interface ProductFormData {
   unidade: string
   estoque: number
   categoria: string
+  imagem_url?: string // Nova coluna adicionada aqui!
 }
 
 export interface CategoryOption {
@@ -32,6 +39,7 @@ const defaultData: ProductFormData = {
   unidade: "kg",
   estoque: 0,
   categoria: "frutas",
+  imagem_url: "",
 }
 
 export function ProductFormModal({
@@ -43,6 +51,7 @@ export function ProductFormModal({
   categories = [],
 }: ProductFormModalProps) {
   const [formData, setFormData] = useState<ProductFormData>(defaultData)
+  const [isUploading, setIsUploading] = useState(false) // Estado para controlar o carregamento da imagem
 
   useEffect(() => {
     if (isOpen) {
@@ -70,6 +79,41 @@ export function ProductFormModal({
     }
   }, [isOpen, handleEscape])
 
+  // Função mágica que faz o upload para o Supabase
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      setIsUploading(true)
+
+      // Criar um nome único para o arquivo (evita que uma foto de maçã sobrescreva outra)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+      
+      // Fazer upload para o bucket 'produtos'
+      const { error: uploadError } = await supabase.storage
+        .from('produtos')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      // Pegar a URL pública da imagem que acabou de subir
+      const { data } = supabase.storage
+        .from('produtos')
+        .getPublicUrl(fileName)
+
+      // Salvar a URL no estado do formulário
+      setFormData((prev) => ({ ...prev, imagem_url: data.publicUrl }))
+
+    } catch (error) {
+      console.error("Erro ao fazer upload da imagem:", error)
+      alert("Erro ao enviar a imagem. Tente novamente.")
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSave(formData)
@@ -88,13 +132,13 @@ export function ProductFormModal({
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-md bg-card rounded-2xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200"
+        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10">
               <Package className="w-5 h-5 text-primary" />
@@ -114,6 +158,52 @@ export function ProductFormModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+          
+          {/* SESSÃO NOVA: Upload de Imagem */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">
+              Foto do Produto
+            </label>
+            <div className="flex items-center gap-4">
+              {/* Preview da Imagem */}
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-xl border border-dashed border-input bg-background overflow-hidden shrink-0">
+                {formData.imagem_url ? (
+                  <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                )}
+                {/* Spinner de carregamento cobrindo a imagem */}
+                {isUploading && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Botão de Input Falso */}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="imagem"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="imagem"
+                  className={`cursor-pointer inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  {formData.imagem_url ? "Trocar foto" : "Escolher foto"}
+                </label>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Formatos aceitos: JPG, PNG.
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* FIM DA SESSÃO DE UPLOAD */}
+
           {/* Nome */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="nome" className="text-sm font-medium text-foreground">
@@ -226,15 +316,17 @@ export function ProductFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95"
+              disabled={isUploading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold transition-all hover:brightness-110 active:scale-95"
+              disabled={isUploading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
             >
-              Salvar
+              {isUploading ? 'Carregando foto...' : 'Salvar'}
             </button>
           </div>
         </form>
