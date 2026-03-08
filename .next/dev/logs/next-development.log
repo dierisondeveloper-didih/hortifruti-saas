@@ -1,0 +1,9 @@
+[00:00:01.132] Server  LOG     ✓ Ready in 713ms
+[00:00:04.911] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:04.917] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:05.831] Browser WARN    Image with src "https://images.unsplash.com/photo-1518843875459-f738682238a6?w=400&h=500&fit=crop" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[00:00:09.497] Browser WARN    Image with src "/images/tomate.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[00:00:19.723] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:06:08.814] Server  LOG     ✓ Compiled in 101ms
