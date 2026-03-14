@@ -18,9 +18,13 @@ export function CategoryManagement() {
   const fetchCategories = useCallback(async () => {
     setIsLoading(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Usuário não autenticado")
+
       const { data, error } = await supabase
         .from("categorias")
         .select("*")
+        .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
         .order("nome", { ascending: true })
 
       if (error) {
@@ -35,10 +39,7 @@ export function CategoryManagement() {
         )
       }
     } catch (err) {
-      alert(
-        "Erro inesperado: " +
-          (err instanceof Error ? err.message : String(err))
-      )
+      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsLoading(false)
     }
@@ -59,8 +60,12 @@ export function CategoryManagement() {
 
     setIsAdding(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Usuário não autenticado")
+
       const { error } = await supabase.from("categorias").insert({
         nome: trimmedName,
+        dono_id: user.id // TRAVA DE SEGURANÇA
       })
 
       if (error) {
@@ -70,10 +75,7 @@ export function CategoryManagement() {
         await fetchCategories()
       }
     } catch (err) {
-      alert(
-        "Erro inesperado: " +
-          (err instanceof Error ? err.message : String(err))
-      )
+      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsAdding(false)
     }
@@ -86,10 +88,14 @@ export function CategoryManagement() {
     if (!confirmed) return
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Usuário não autenticado")
+
       const { error } = await supabase
         .from("categorias")
         .delete()
         .eq("id", categoryId)
+        .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
       if (error) {
         alert("Erro ao excluir categoria: " + error.message)
@@ -97,10 +103,7 @@ export function CategoryManagement() {
         await fetchCategories()
       }
     } catch (err) {
-      alert(
-        "Erro inesperado: " +
-          (err instanceof Error ? err.message : String(err))
-      )
+      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
     }
   }
 

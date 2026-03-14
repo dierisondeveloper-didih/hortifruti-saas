@@ -41,6 +41,26 @@ export async function POST(request: Request) {
       throw lojaError
     }
 
+    // 3. Cria a configuração padrão para a loja recém-criada
+    const { error: configError } = await supabaseAdmin
+      .from('configuracoes')
+      .insert([
+        {
+          dono_id: userId,
+          nome_loja: nomeLoja,
+          telefone_whatsapp: "", // Deixa vazio para ele preencher no primeiro acesso
+          taxa_entrega: 0,
+          cor_primaria: "#2d8a4e" // Verde padrão
+        }
+      ])
+
+    if (configError) {
+      // Se der erro ao criar a configuração padrão, revertemos tudo limpando o banco
+      await supabaseAdmin.from('lojas').delete().eq('dono_id', userId)
+      await supabaseAdmin.auth.admin.deleteUser(userId)
+      throw configError
+    }
+
     return NextResponse.json({ success: true, loja: lojaData[0] })
 
   } catch (error: any) {

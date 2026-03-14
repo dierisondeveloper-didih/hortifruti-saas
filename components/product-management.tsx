@@ -44,12 +44,15 @@ export function ProductManagement({
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [categories, setCategories] = useState<CategoryOption[]>([])
 
-  // Fetch categories from database
   const fetchCategories = useCallback(async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return // Se não achar o user, sai silenciosamente
+
       const { data, error } = await supabase
         .from("categorias")
         .select("*")
+        .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
         .order("nome", { ascending: true })
 
       if (!error && data) {
@@ -84,7 +87,7 @@ export function ProductManagement({
       unidade: product.unit,
       estoque: product.stock,
       categoria: product.category,
-      imagem_url: product.image, // <--- AQUI ESTÁ A MÁGICA ADICIONADA!
+      imagem_url: product.image,
     })
     setIsModalOpen(true)
   }
@@ -164,10 +167,9 @@ export function ProductManagement({
               key={product.id}
               className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
             >
-              {/* Thumbnail */}
               <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-muted">
                 <Image
-                  src={product.image || "https://images.unsplash.com/photo-1610397962076-02407a169a5b?q=80&w=200&auto=format&fit=crop"} // Garantia de não quebrar
+                  src={product.image || "https://images.unsplash.com/photo-1610397962076-02407a169a5b?q=80&w=200&auto=format&fit=crop"}
                   alt={product.name}
                   fill
                   className="object-cover"
@@ -175,7 +177,6 @@ export function ProductManagement({
                 />
               </div>
 
-              {/* Info */}
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm font-semibold text-foreground truncate">
                   {product.name}
@@ -199,21 +200,21 @@ export function ProductManagement({
                 </span>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              {/* ACTIONS: BOTÕES ARRUMADOS AQUI */}
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => handleEditClick(product)}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/70 active:scale-95"
-                  aria-label={`Editar ${product.name}`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95"
                 >
                   <Pencil className="w-4 h-4" />
+                  <span>Editar</span>
                 </button>
                 <button
                   onClick={() => handleDeleteClick(product.id)}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 active:scale-95"
-                  aria-label={`Excluir ${product.name}`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-sm font-medium transition-colors hover:bg-destructive/20 active:scale-95"
                 >
                   <Trash2 className="w-4 h-4" />
+                  <span>Excluir</span>
                 </button>
               </div>
             </li>
@@ -221,7 +222,6 @@ export function ProductManagement({
         </ul>
       )}
 
-      {/* Add/Edit Modal */}
       <ProductFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -231,7 +231,6 @@ export function ProductManagement({
         categories={categories}
       />
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div

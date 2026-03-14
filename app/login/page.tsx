@@ -41,8 +41,23 @@ export default function LoginPage() {
         return
       }
 
-      // Success - redirect to admin
-      router.push("/admin")
+      // Verifica se é super admin antes de redirecionar
+      const { data: { session } } = await supabase.auth.getSession()
+      let destination = "/admin"
+
+      if (session?.access_token) {
+        try {
+          const res = await fetch("/api/super-admin/auth", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+          const data = await res.json()
+          if (data.authorized) destination = "/super-admin"
+        } catch {
+          // Falha silenciosa — mantém /admin como destino
+        }
+      }
+
+      router.push(destination)
     } catch (err) {
       setError(
         "Erro inesperado: " +

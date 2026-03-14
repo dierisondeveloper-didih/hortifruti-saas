@@ -4,31 +4,18 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { AdminHeader } from "@/components/admin-header"
 import { AdminStatusPanel } from "@/components/admin-status-panel"
-import {
-  AdminProductList,
-  type AdminProduct,
-} from "@/components/admin-product-list"
+import { AdminProductList, type AdminProduct } from "@/components/admin-product-list"
 import { CameraModal } from "@/components/camera-modal"
 import { AdminSidebar, type AdminTab } from "@/components/admin-sidebar"
-import {
-  ProductManagement,
-  type ManagedProduct,
-} from "@/components/product-management"
+import { ProductManagement, type ManagedProduct } from "@/components/product-management"
 import { type ProductFormData } from "@/components/product-form-modal"
 import { supabase } from "@/lib/supabase"
-import {
-  getProductImage,
-  formatFreshTimestamp,
-  getVideoStatus,
-} from "@/lib/product-utils"
+import { getProductImage, formatFreshTimestamp, getVideoStatus } from "@/lib/product-utils"
 import { Loader2, WifiOff, RefreshCw, Construction } from "lucide-react"
 import { SettingsForm } from "@/components/settings-form"
 import { CategoryManagement } from "@/components/category-management"
 import { OrdersManagement } from "@/components/orders-management"
 
-/**
- * Maps a Supabase `produtos` row to the AdminProduct interface.
- */
 function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
   const name = String(row.nome ?? "")
   const { label } = formatFreshTimestamp(row.ultimo_video_em)
@@ -37,7 +24,6 @@ function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
   return {
     id: String(row.id),
     name,
-    // A MÁGICA 1: Tenta usar a imagem do banco, se não tiver, usa a genérica
     image: row.imagem_url ? String(row.imagem_url) : getProductImage(name),
     price: Number(row.preco ?? 0),
     unit: String(row.unidade ?? "kg"),
@@ -49,15 +35,11 @@ function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
 export default function AdminPage() {
   const router = useRouter()
 
-  // Auth state
   const [isAuthChecking, setIsAuthChecking] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // Sidebar and navigation state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<AdminTab>("videos")
 
-  // Products state (shared between tabs)
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [managedProducts, setManagedProducts] = useState<ManagedProduct[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,7 +48,6 @@ export default function AdminPage() {
   const [cameraProduct, setCameraProduct] = useState<AdminProduct | null>(null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
 
-  // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -83,7 +64,6 @@ export default function AdminPage() {
     checkAuth()
   }, [router])
 
-  // Handle logout
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut()
     router.push("/")
@@ -93,34 +73,40 @@ export default function AdminPage() {
     setIsLoading(true)
     setError(null)
 
-    const { data, error: supaError } = await supabase
-      .from("produtos")
-      .select("*")
-      .order("criado_em", { ascending: false })
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) throw new Error("Usuário não autenticado")
 
-    if (supaError) {
-      setError(supaError.message)
+      const { data, error: supaError } = await supabase
+        .from("produtos")
+        .select("*")
+        .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
+        .order("criado_em", { ascending: false })
+
+      if (supaError) {
+        throw supaError
+      } else {
+        const rows = data ?? []
+        setProducts(rows.map(mapRowToAdminProduct))
+        setManagedProducts(
+          rows.map((row) => ({
+            id: String(row.id),
+            name: String(row.nome ?? ""),
+            price: Number(row.preco ?? 0),
+            unit: String(row.unidade ?? "kg"),
+            stock: Number(row.estoque ?? 0),
+            category: String(row.categoria ?? ""),
+            image: row.imagem_url ? String(row.imagem_url) : getProductImage(String(row.nome ?? "")),
+          }))
+        )
+      }
+    } catch (err: any) {
+      setError(err.message)
       setProducts([])
       setManagedProducts([])
-    } else {
-      const rows = data ?? []
-      setProducts(rows.map(mapRowToAdminProduct))
-      // Also map to ManagedProduct for Product Management tab
-      setManagedProducts(
-        rows.map((row) => ({
-          id: String(row.id),
-          name: String(row.nome ?? ""),
-          price: Number(row.preco ?? 0),
-          unit: String(row.unidade ?? "kg"),
-          stock: Number(row.estoque ?? 0),
-          category: String(row.categoria ?? ""),
-          // A MÁGICA 2: Tenta usar a imagem do banco para a lista de gerenciamento também
-          image: row.imagem_url ? String(row.imagem_url) : getProductImage(String(row.nome ?? "")),
-        }))
-      )
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -142,17 +128,20 @@ export default function AdminPage() {
     setCameraProduct(null)
   }
 
-  // Product Management handlers - Connected to Supabase
   const handleAddProduct = useCallback(
     async (data: ProductFormData) => {
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Usuário não autenticado")
+
         const { error: insertError } = await supabase.from("produtos").insert({
           nome: data.nome,
           preco: data.preco,
           unidade: data.unidade,
           estoque: data.estoque,
           categoria: data.categoria,
-          imagem_url: data.imagem_url || null, // A MÁGICA 3: Salvando a foto no banco!
+          imagem_url: data.imagem_url || null,
+          dono_id: user.id // TRAVA DE SEGURANÇA
         })
 
         if (insertError) {
@@ -160,13 +149,9 @@ export default function AdminPage() {
           return
         }
 
-        // Refresh product list after successful insert
         await fetchProducts()
       } catch (err) {
-        alert(
-          "Erro inesperado: " +
-            (err instanceof Error ? err.message : String(err))
-        )
+        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       }
     },
     [fetchProducts]
@@ -175,11 +160,14 @@ export default function AdminPage() {
   const handleEditProduct = useCallback(
     async (data: ProductFormData) => {
       if (!data.id) {
-        alert("Erro: ID do produto nao encontrado")
+        alert("Erro: ID do produto não encontrado")
         return
       }
 
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Usuário não autenticado")
+
         const { error: updateError } = await supabase
           .from("produtos")
           .update({
@@ -188,22 +176,19 @@ export default function AdminPage() {
             unidade: data.unidade,
             estoque: data.estoque,
             categoria: data.categoria,
-            imagem_url: data.imagem_url || null, // A MÁGICA 4: Atualizando a foto no banco!
+            imagem_url: data.imagem_url || null,
           })
           .eq("id", data.id)
+          .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
         if (updateError) {
           alert("Erro ao atualizar produto: " + updateError.message)
           return
         }
 
-        // Refresh product list after successful update
         await fetchProducts()
       } catch (err) {
-        alert(
-          "Erro inesperado: " +
-            (err instanceof Error ? err.message : String(err))
-        )
+        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       }
     },
     [fetchProducts]
@@ -211,29 +196,27 @@ export default function AdminPage() {
 
   const handleDeleteProduct = useCallback(
     async (productId: string) => {
-      const confirmed = window.confirm(
-        "Tem certeza que deseja excluir este produto?"
-      )
+      const confirmed = window.confirm("Tem certeza que deseja excluir este produto?")
       if (!confirmed) return
 
       try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Usuário não autenticado")
+
         const { error: deleteError } = await supabase
           .from("produtos")
           .delete()
           .eq("id", productId)
+          .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
         if (deleteError) {
           alert("Erro ao excluir produto: " + deleteError.message)
           return
         }
 
-        // Refresh product list after successful delete
         await fetchProducts()
       } catch (err) {
-        alert(
-          "Erro inesperado: " +
-            (err instanceof Error ? err.message : String(err))
-        )
+        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       }
     },
     [fetchProducts]
@@ -245,15 +228,13 @@ export default function AdminPage() {
 
       try {
         if (!videoBlob) {
-          console.log("[v0] Nenhum blob de video recebido, atualizando apenas timestamp")
           const { error: updateError } = await supabase
             .from("produtos")
             .update({ ultimo_video_em: new Date().toISOString() })
             .eq("id", productId)
 
-          if (updateError) {
-            alert("Erro ao atualizar produto: " + updateError.message)
-          }
+          if (updateError) alert("Erro ao atualizar produto: " + updateError.message)
+          
           await fetchProducts()
           setIsSaving(false)
           setIsCameraOpen(false)
@@ -264,8 +245,6 @@ export default function AdminPage() {
         const timestamp = Date.now()
         const fileName = `${productId}_${timestamp}.webm`
 
-        console.log("[v0] Iniciando upload do video:", fileName, "Tamanho:", videoBlob.size, "bytes")
-
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("videos_produtos")
           .upload(fileName, videoBlob, {
@@ -274,7 +253,6 @@ export default function AdminPage() {
           })
 
         if (uploadError) {
-          console.error("[v0] Erro no upload:", uploadError)
           alert("Erro no upload: " + uploadError.message)
           setIsSaving(false)
           setIsCameraOpen(false)
@@ -282,18 +260,14 @@ export default function AdminPage() {
           return
         }
 
-        console.log("[v0] Upload concluido com sucesso:", uploadData)
-
         const { data: urlData } = supabase.storage
           .from("videos_produtos")
           .getPublicUrl(fileName)
 
         const publicUrl = urlData?.publicUrl
 
-        console.log("[v0] URL Gerada:", publicUrl)
-
         if (!publicUrl) {
-          alert("Erro: Nao foi possivel obter a URL publica do video")
+          alert("Erro: Não foi possível obter a URL pública do vídeo")
           setIsSaving(false)
           setIsCameraOpen(false)
           setCameraProduct(null)
@@ -309,7 +283,6 @@ export default function AdminPage() {
           .eq("id", productId)
 
         if (updateError) {
-          console.error("[v0] Erro ao atualizar produto:", updateError)
           alert("Erro ao atualizar produto: " + updateError.message)
           setIsSaving(false)
           setIsCameraOpen(false)
@@ -317,12 +290,9 @@ export default function AdminPage() {
           return
         }
 
-        console.log("[v0] Produto atualizado com sucesso! video_url:", publicUrl)
-
         await fetchProducts()
 
       } catch (err) {
-        console.error("[v0] Erro inesperado:", err)
         alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       } finally {
         setIsSaving(false)
@@ -331,20 +301,6 @@ export default function AdminPage() {
       }
     },
     [fetchProducts]
-  )
-
-  const renderPlaceholderTab = (title: string) => (
-    <div className="flex flex-col items-center justify-center py-20 px-6 gap-4 text-center">
-      <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-        <Construction className="w-6 h-6 text-muted-foreground" />
-      </div>
-      <div>
-        <p className="text-base font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Esta secao sera implementada em breve
-        </p>
-      </div>
-    </div>
   )
 
   if (isAuthChecking || !isAuthenticated) {
@@ -372,9 +328,7 @@ export default function AdminPage() {
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-sm text-muted-foreground">
-            Carregando produtos...
-          </p>
+          <p className="text-sm text-muted-foreground">Carregando produtos...</p>
         </div>
       )}
 
@@ -384,12 +338,8 @@ export default function AdminPage() {
             <WifiOff className="w-6 h-6 text-destructive" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">
-              Erro ao carregar produtos
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-              {error}
-            </p>
+            <p className="text-sm font-medium text-foreground">Erro ao carregar produtos</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs">{error}</p>
           </div>
           <button
             onClick={fetchProducts}
@@ -405,14 +355,8 @@ export default function AdminPage() {
         <>
           {activeTab === "videos" && (
             <>
-              <AdminStatusPanel
-                outdatedCount={outdatedCount}
-                totalCount={products.length}
-              />
-              <AdminProductList
-                products={products}
-                onRecordClick={handleRecordClick}
-              />
+              <AdminStatusPanel outdatedCount={outdatedCount} totalCount={products.length} />
+              <AdminProductList products={products} onRecordClick={handleRecordClick} />
             </>
           )}
 
@@ -438,9 +382,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card border border-border shadow-lg">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm font-medium text-foreground">
-              Salvando video...
-            </p>
+            <p className="text-sm font-medium text-foreground">Salvando vídeo...</p>
           </div>
         </div>
       )}

@@ -71,9 +71,16 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   const fetchOrders = useCallback(async () => {
     setIsLoading(true)
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from("pedidos")
       .select("*")
+      .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -156,10 +163,12 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
           }
 
           // Update stock in database
+          const { data: { user: currentUser } } = await supabase.auth.getUser()
           const { error: updateError } = await supabase
             .from("produtos")
             .update({ estoque: newStock })
             .eq("id", item.product_id)
+            .eq("dono_id", currentUser?.id) // TRAVA DE SEGURANÇA
 
           if (updateError) {
             console.error(`Erro ao atualizar estoque do produto ${item.product_id}:`, updateError)
@@ -168,10 +177,12 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
       }
 
       // Update order status
+      const { data: { user: authUser } } = await supabase.auth.getUser()
       const { error } = await supabase
         .from("pedidos")
         .update({ status: newStatus })
         .eq("id", orderId)
+        .eq("dono_id", authUser?.id) // TRAVA DE SEGURANÇA
 
       if (error) {
         alert("Erro ao atualizar status: " + error.message)

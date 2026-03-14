@@ -39,14 +39,23 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
     setError(null)
 
     try {
+      // 1. Identifica o usuário logado PRIMEIRO
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        throw new Error("Não foi possível identificar o usuário logado.")
+      }
+
+      // 2. Busca as configurações FILTRANDO pelo ID desse usuário
       const { data, error: supaError } = await supabase
         .from("configuracoes")
         .select("*")
+        .eq("dono_id", user.id) // A trava de segurança!
         .limit(1)
         .single()
 
       if (supaError) {
-        // If no settings exist yet, that's okay - we'll create on save
+        // Se não existir, preenche com os padrões para criar no primeiro "Salvar"
         if (supaError.code === "PGRST116") {
           setSettings(null)
           setNomeLoja("Hortifruti Online")
@@ -77,7 +86,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   }, [fetchSettings])
 
   const handleSave = async () => {
-    // Validation
     if (!nomeLoja.trim()) {
       alert("Por favor, informe o nome da loja.")
       return
@@ -86,7 +94,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
       alert("Por favor, informe o numero do WhatsApp.")
       return
     }
-    // Validate phone format (only numbers, at least 10 digits)
+    
     const phoneClean = telefoneWhatsapp.replace(/\D/g, "")
     if (phoneClean.length < 10) {
       alert("O numero do WhatsApp deve ter pelo menos 10 digitos (com DDD).")
@@ -96,9 +104,13 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
     setIsSaving(true)
 
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error("Não foi possível identificar o usuário logado para salvar as configurações.")
+      }
+
       let uploadedLogoUrl = logoUrl
 
-      // Upload logo if a new file was selected
       if (logoFile) {
         const timestamp = Date.now()
         const fileExt = logoFile.name.split(".").pop()
@@ -117,7 +129,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           return
         }
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from("logos_lojas")
           .getPublicUrl(fileName)
@@ -127,28 +138,27 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         }
       }
 
-      const payload = {
+      const payload: any = {
         nome_loja: nomeLoja.trim(),
         telefone_whatsapp: phoneClean,
         taxa_entrega: parseFloat(taxaEntrega) || 0,
         cor_primaria: corPrimaria,
         logo_url: uploadedLogoUrl || null,
+        dono_id: user.id
       }
 
       if (settings?.id) {
-        // UPDATE existing settings
         const { error: updateError } = await supabase
           .from("configuracoes")
           .update(payload)
           .eq("id", settings.id)
 
         if (updateError) {
-          alert("Erro ao salvar configuracoes: " + updateError.message)
+          alert("Erro ao atualizar configuracoes: " + updateError.message)
           setIsSaving(false)
           return
         }
       } else {
-        // INSERT new settings
         const { error: insertError } = await supabase
           .from("configuracoes")
           .insert(payload)
@@ -164,9 +174,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
       await fetchSettings()
       onSave?.()
     } catch (err) {
-      alert(
-        "Erro inesperado: " + (err instanceof Error ? err.message : String(err))
-      )
+      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
     }
 
     setIsSaving(false)
@@ -209,7 +217,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
       </div>
 
       <div className="space-y-5">
-        {/* Store Name */}
         <div>
           <label
             htmlFor="store-name"
@@ -228,7 +235,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           />
         </div>
 
-        {/* WhatsApp Number */}
         <div>
           <label
             htmlFor="whatsapp-number"
@@ -250,7 +256,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           </p>
         </div>
 
-        {/* Delivery Fee */}
         <div>
           <label
             htmlFor="delivery-fee"
@@ -274,14 +279,12 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           </p>
         </div>
 
-        {/* Divider */}
         <div className="border-t border-border pt-5 mt-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">
             Identidade Visual (White-label)
           </h3>
         </div>
 
-        {/* Primary Color */}
         <div>
           <label
             htmlFor="primary-color"
@@ -318,14 +321,12 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           </p>
         </div>
 
-        {/* Logo Upload */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
             <ImageIcon className="w-4 h-4 text-primary" />
             Logo da Loja
           </label>
           <div className="flex items-center gap-4">
-            {/* Preview */}
             <div className="relative w-20 h-20 rounded-xl border-2 border-dashed border-border bg-secondary flex items-center justify-center overflow-hidden">
               {logoPreview || logoUrl ? (
                 <Image
@@ -376,7 +377,6 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           </p>
         </div>
 
-        {/* Save Button */}
         <button
           onClick={handleSave}
           disabled={isSaving}

@@ -14,6 +14,7 @@ interface SearchAndFiltersProps {
   activeCategory: string
   onCategoryChange: (category: string) => void
   categories?: CategoryFilter[]
+  primaryColor?: string
 }
 
 export function SearchAndFilters({
@@ -22,6 +23,7 @@ export function SearchAndFilters({
   activeCategory,
   onCategoryChange,
   categories = [],
+  primaryColor,
 }: SearchAndFiltersProps) {
   // Build filter buttons: "Todos" first, then dynamic categories from database
   const filterButtons = useMemo(() => {
@@ -65,9 +67,16 @@ export function SearchAndFilters({
               onClick={() => onCategoryChange(btn.filterId)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0 ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  ? primaryColor
+                    ? "shadow-md"
+                    : "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "bg-card text-muted-foreground border border-border hover:border-primary/30 hover:text-foreground"
               }`}
+              style={
+                isActive && primaryColor
+                  ? { backgroundColor: primaryColor, borderColor: primaryColor, color: "#ffffff" }
+                  : undefined
+              }
             >
               {Icon && <Icon className="w-3.5 h-3.5" />}
               {btn.label}
