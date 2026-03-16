@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Play, Clock, Plus, Check } from "lucide-react"
+import { Clock, Plus, Check } from "lucide-react"
 
 // Product interface for catalog items
 export interface Product {
@@ -60,7 +60,7 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
       {/* Video-style area */}
       <div
         className="relative aspect-[3/4] bg-foreground/5 overflow-hidden group cursor-pointer"
-        onClick={handleVideoClick}
+        onClick={product.videoUrl ? handleVideoClick : undefined}
         role={product.videoUrl ? "button" : undefined}
         tabIndex={product.videoUrl ? 0 : undefined}
         onKeyDown={(e) => {
@@ -91,43 +91,38 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
           />
         )}
 
-        {/* Dark overlay for video feel */}
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-foreground/10" />
+        {/* Dark overlay for video feel — only when video exists */}
+        {product.videoUrl && (
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-foreground/10" />
+        )}
 
-        {/* Play button - only show if no video */}
-        {!product.videoUrl && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-card/20 backdrop-blur-md border border-card/30 transition-transform group-hover:scale-110">
-              <Play className="w-5 h-5 text-card fill-card ml-0.5" />
+        {/* Freshness timestamp badge — only when video exists */}
+        {product.videoUrl && (
+          <div className="absolute top-2.5 left-2.5">
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold backdrop-blur-md shadow-lg ${
+                product.isLive
+                  ? "bg-red-500/90 text-card"
+                  : "bg-card/90 text-foreground"
+              }`}
+            >
+              {product.isLive ? (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-card opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-card" />
+                  </span>
+                  AO VIVO
+                </>
+              ) : (
+                <>
+                  <Clock className="w-3 h-3 text-primary" />
+                  {product.freshTimestamp}
+                </>
+              )}
             </div>
           </div>
         )}
-
-        {/* Freshness timestamp badge */}
-        <div className="absolute top-2.5 left-2.5">
-          <div
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold backdrop-blur-md shadow-lg ${
-              product.isLive
-                ? "bg-red-500/90 text-card"
-                : "bg-card/90 text-foreground"
-            }`}
-          >
-            {product.isLive ? (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-card opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-card" />
-                </span>
-                AO VIVO
-              </>
-            ) : (
-              <>
-                <Clock className="w-3 h-3 text-primary" />
-                {product.freshTimestamp}
-              </>
-            )}
-          </div>
-        </div>
 
         {/* Offer badge */}
         {product.isOffer && (
@@ -138,10 +133,12 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
           </div>
         )}
 
-        {/* Video progress bar simulation */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-card/20">
-          <div className="h-full w-1/3 bg-primary rounded-r-full" />
-        </div>
+        {/* Video progress bar — only when video exists */}
+        {product.videoUrl && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-card/20">
+            <div className="h-full w-1/3 bg-primary rounded-r-full" />
+          </div>
+        )}
       </div>
 
       {/* Product info */}

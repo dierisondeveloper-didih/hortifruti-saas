@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Video, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Video, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react"
 
 export interface AdminProduct {
   id: string
@@ -11,11 +11,13 @@ export interface AdminProduct {
   unit: string
   videoStatus: "updated" | "outdated" | "old"
   videoTimestamp: string
+  videoUrl?: string
 }
 
 interface AdminProductListProps {
   products: AdminProduct[]
   onRecordClick: (product: AdminProduct) => void
+  onDeleteVideo: (product: AdminProduct) => void
 }
 
 function getStatusConfig(status: AdminProduct["videoStatus"]) {
@@ -50,6 +52,7 @@ function getStatusConfig(status: AdminProduct["videoStatus"]) {
 export function AdminProductList({
   products,
   onRecordClick,
+  onDeleteVideo,
 }: AdminProductListProps) {
   return (
     <div className="px-4 pb-6">
@@ -107,15 +110,26 @@ export function AdminProductList({
                 </div>
               </div>
 
-              {/* Record button */}
-              <button
-                onClick={() => onRecordClick(product)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shrink-0 transition-all hover:brightness-110 active:scale-95"
-                aria-label={`Gravar video de atualizacao para ${product.name}`}
-              >
-                <Video className="w-4 h-4" />
-                <span className="hidden min-[400px]:inline">Gravar</span>
-              </button>
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                {product.videoUrl && (
+                  <button
+                    onClick={() => onDeleteVideo(product)}
+                    className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-200 transition-all hover:bg-red-100 active:scale-95"
+                    aria-label={`Excluir video de ${product.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => onRecordClick(product)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold transition-all hover:brightness-110 active:scale-95"
+                  aria-label={`Gravar video de atualizacao para ${product.name}`}
+                >
+                  <Video className="w-4 h-4" />
+                  <span className="hidden min-[400px]:inline">Gravar</span>
+                </button>
+              </div>
             </li>
           )
         })}

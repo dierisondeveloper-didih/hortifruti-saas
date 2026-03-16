@@ -20,12 +20,18 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment")
   const [isStopping, setIsStopping] = useState(false)
+  const [supportsZoom, setSupportsZoom] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [zoomMin, setZoomMin] = useState(1)
+  const [zoomMax, setZoomMax] = useState(5)
+  const [zoomStep, setZoomStep] = useState(0.1)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const zoomTrackRef = useRef<MediaStreamTrack | null>(null)
 
   // Start camera when modal opens
   useEffect(() => {
@@ -55,6 +61,23 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
         }
 
         streamRef.current = stream
+
+        // Detect zoom support
+        const track = stream.getVideoTracks()[0]
+        zoomTrackRef.current = track
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const capabilities = track.getCapabilities() as any
+        if (capabilities && "zoom" in capabilities) {
+          const zCap = capabilities.zoom
+          setSupportsZoom(true)
+          setZoomMin(zCap.min ?? 1)
+          setZoomMax(zCap.max ?? 5)
+          setZoomStep(zCap.step ?? 0.1)
+          setZoomLevel(zCap.min ?? 1)
+        } else {
+          setSupportsZoom(false)
+          setZoomLevel(1)
+        }
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
@@ -100,6 +123,9 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
       setCameraReady(false)
       setCameraError(null)
       setIsStopping(false)
+      setSupportsZoom(false)
+      setZoomLevel(1)
+      zoomTrackRef.current = null
       // Clear timer
       if (timerRef.current) {
         clearInterval(timerRef.current)
@@ -194,6 +220,18 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
     if (isRecording) return
     setFacingMode((prev) => (prev === "environment" ? "user" : "environment"))
   }, [isRecording])
+
+  const handleZoomChange = useCallback(async (value: number) => {
+    setZoomLevel(value)
+    if (zoomTrackRef.current) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await zoomTrackRef.current.applyConstraints({ advanced: [{ zoom: value } as any] })
+      } catch {
+        // Zoom not applicable, ignore
+      }
+    }
+  }, [])
 
   const handleClose = useCallback(() => {
     if (isRecording) {
@@ -329,6 +367,41 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
             </div>
           </div>
         </div>
+
+        {/* Zoom slider */}
+        {supportsZoom && cameraReady && (
+          <div className="relative z-20 px-6 pb-2">
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/50 backdrop-blur-md">
+              <button
+                onClick={() => handleZoomChange(Math.max(zoomMin, parseFloat((zoomLevel - zoomStep).toFixed(2))))}
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20 text-white text-lg font-bold shrink-0 hover:bg-white/30 active:scale-95 transition-all"
+                aria-label="Diminuir zoom"
+              >
+                −
+              </button>
+              <input
+                type="range"
+                min={zoomMin}
+                max={zoomMax}
+                step={zoomStep}
+                value={zoomLevel}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                className="flex-1 h-1.5 accent-white cursor-pointer"
+                aria-label="Nível de zoom"
+              />
+              <button
+                onClick={() => handleZoomChange(Math.min(zoomMax, parseFloat((zoomLevel + zoomStep).toFixed(2))))}
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20 text-white text-lg font-bold shrink-0 hover:bg-white/30 active:scale-95 transition-all"
+                aria-label="Aumentar zoom"
+              >
+                +
+              </button>
+              <span className="text-white text-xs font-semibold w-9 text-right shrink-0">
+                {zoomLevel.toFixed(1)}x
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Bottom controls */}
         <div className="relative z-20 flex items-center justify-center gap-8 px-6 pb-10 pt-4">

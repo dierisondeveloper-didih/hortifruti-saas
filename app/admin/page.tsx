@@ -31,6 +31,7 @@ function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
     unit: String(row.unidade ?? "kg"),
     videoStatus,
     videoTimestamp: label,
+    videoUrl: row.video_url ? String(row.video_url) : undefined,
   }
 }
 
@@ -305,6 +306,41 @@ export default function AdminPage() {
     [fetchProducts]
   )
 
+  const handleDeleteVideo = useCallback(
+    async (product: AdminProduct) => {
+      const confirmed = window.confirm("Tem certeza que deseja excluir o vídeo deste produto?")
+      if (!confirmed) return
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Usuário não autenticado")
+
+        if (product.videoUrl) {
+          const url = new URL(product.videoUrl)
+          const pathParts = url.pathname.split("/")
+          const fileName = pathParts[pathParts.length - 1]
+          await supabase.storage.from("videos_produtos").remove([fileName])
+        }
+
+        const { error: updateError } = await supabase
+          .from("produtos")
+          .update({ video_url: null, ultimo_video_em: null })
+          .eq("id", product.id)
+          .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
+
+        if (updateError) {
+          alert("Erro ao excluir vídeo: " + updateError.message)
+          return
+        }
+
+        await fetchProducts()
+      } catch (err) {
+        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+      }
+    },
+    [fetchProducts]
+  )
+
   if (isAuthChecking || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -360,7 +396,7 @@ export default function AdminPage() {
           {activeTab === "videos" && (
             <>
               <AdminStatusPanel outdatedCount={outdatedCount} totalCount={products.length} />
-              <AdminProductList products={products} onRecordClick={handleRecordClick} />
+              <AdminProductList products={products} onRecordClick={handleRecordClick} onDeleteVideo={handleDeleteVideo} />
             </>
           )}
 
