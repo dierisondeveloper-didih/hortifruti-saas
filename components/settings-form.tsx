@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload } from "lucide-react"
+import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 
 export type TipoServico = "entrega" | "retirada" | "ambos"
@@ -37,6 +37,17 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw, setShowNewPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true)
@@ -185,6 +196,50 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
     }
 
     setIsSaving(false)
+  }
+
+  const handleChangePassword = async () => {
+    setPasswordError(null)
+
+    if (newPassword.length < 6) {
+      setPasswordError("A nova senha deve ter pelo menos 6 caracteres.")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("A confirmação não confere com a nova senha.")
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("Sessão não encontrada. Faça login novamente.")
+
+      const response = await fetch("/api/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        setPasswordError(result.error || "Erro ao alterar senha.")
+        return
+      }
+
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setPasswordSuccess(true)
+      setTimeout(() => setPasswordSuccess(false), 4000)
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Erro inesperado.")
+    } finally {
+      setIsChangingPassword(false)
+    }
   }
 
   if (isLoading) {
@@ -430,6 +485,116 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           )}
           {isSaving ? "Salvando..." : "Salvar Configuracoes"}
         </button>
+
+        {/* Segurança da Conta */}
+        <div className="border-t border-border pt-5 mt-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
+            <Lock className="w-4 h-4 text-primary" />
+            Segurança da Conta
+          </h3>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {/* Senha Atual */}
+          <div>
+            <label htmlFor="current-password" className="text-sm font-medium text-foreground block mb-2">
+              Senha Atual
+            </label>
+            <div className="relative">
+              <input
+                id="current-password"
+                type={showCurrentPw ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPw((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showCurrentPw ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Nova Senha */}
+          <div>
+            <label htmlFor="new-password" className="text-sm font-medium text-foreground block mb-2">
+              Nova Senha
+            </label>
+            <div className="relative">
+              <input
+                id="new-password"
+                type={showNewPw ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPw((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showNewPw ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirmar Nova Senha */}
+          <div>
+            <label htmlFor="confirm-password" className="text-sm font-medium text-foreground block mb-2">
+              Confirmar Nova Senha
+            </label>
+            <div className="relative">
+              <input
+                id="confirm-password"
+                type={showConfirmPw ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repita a nova senha"
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPw((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showConfirmPw ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Error / Success feedback */}
+          {passwordError && (
+            <p className="text-sm text-destructive">{passwordError}</p>
+          )}
+          {passwordSuccess && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm font-medium">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Senha alterada com sucesso!
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleChangePassword}
+            disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground border border-border text-sm font-semibold transition-all hover:bg-secondary/70 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {isChangingPassword ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Lock className="w-4 h-4" />
+            )}
+            {isChangingPassword ? "Alterando..." : "Alterar Senha"}
+          </button>
+        </div>
       </div>
     </div>
   )

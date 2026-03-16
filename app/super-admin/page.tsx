@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Wrench,
   ExternalLink,
+  KeyRound,
 } from "lucide-react"
 import { AppFooter } from "@/components/app-footer"
 
@@ -74,6 +75,12 @@ export default function SuperAdminPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null) // dono_id
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Reset de senha
+  const [resetModal, setResetModal] = useState<{ donoId: string; nomeLoja: string } | null>(null)
+  const [resetPasswordValue, setResetPasswordValue] = useState("")
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   // Cleanup
   const [isCleaningUp, setIsCleaningUp] = useState(false)
@@ -222,6 +229,42 @@ export default function SuperAdminPage() {
       setLojasFeedback({ type: "error", text: err.message })
     } finally {
       setIsCleaningUp(false)
+    }
+  }
+
+  // ── Reset de senha ────────────────────────────────────────────────────────
+
+  async function handleResetPassword() {
+    if (!resetModal) return
+
+    if (resetPasswordValue.length < 6) {
+      setResetPasswordError("A senha deve ter pelo menos 6 caracteres.")
+      return
+    }
+
+    setIsResettingPassword(true)
+    setResetPasswordError(null)
+
+    try {
+      const authHeader = await getAuthHeader()
+      const res = await fetch("/api/super-admin/lojas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({ donoId: resetModal.donoId, newPassword: resetPasswordValue }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      setLojasFeedback({
+        type: "success",
+        text: `Senha resetada! Informe a nova senha ao lojista "${resetModal.nomeLoja}".`,
+      })
+      setResetModal(null)
+      setResetPasswordValue("")
+    } catch (err: any) {
+      setResetPasswordError(err.message)
+    } finally {
+      setIsResettingPassword(false)
     }
   }
 
@@ -468,6 +511,22 @@ export default function SuperAdminPage() {
                           {loja.ativo ? "Desativar" : "Ativar"}
                         </button>
 
+                        {/* Resetar senha */}
+                        {!isConfirming && (
+                          <button
+                            onClick={() => {
+                              setResetPasswordValue("")
+                              setResetPasswordError(null)
+                              setResetModal({ donoId: loja.dono_id, nomeLoja })
+                            }}
+                            disabled={isDeleting || isToggling}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-yellow-500/10 text-yellow-500 text-xs font-medium hover:bg-yellow-500/20 transition-all disabled:opacity-50"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            Resetar Senha
+                          </button>
+                        )}
+
                         {/* Excluir — dois passos */}
                         {!isConfirming ? (
                           <button
@@ -620,6 +679,76 @@ export default function SuperAdminPage() {
           </div>
         )}
       </div>
+      {/* ── Modal: Resetar Senha ──────────────────────────────────────── */}
+      {resetModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            onClick={() => { setResetModal(null); setResetPasswordValue(""); setResetPasswordError(null) }}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-sm bg-card rounded-2xl border border-border shadow-2xl p-5 space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-500/10 shrink-0">
+                <KeyRound className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Resetar Senha</h3>
+                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                  {resetModal.nomeLoja}
+                </p>
+              </div>
+            </div>
+
+            {/* Input */}
+            <div>
+              <label htmlFor="reset-pw" className="text-sm font-medium text-foreground block mb-2">
+                Nova Senha
+              </label>
+              <input
+                id="reset-pw"
+                type="password"
+                value={resetPasswordValue}
+                onChange={(e) => { setResetPasswordValue(e.target.value); setResetPasswordError(null) }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleResetPassword() }}
+                placeholder="Mínimo 6 caracteres"
+                autoFocus
+                className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              {resetPasswordError && (
+                <p className="text-xs text-destructive mt-1.5">{resetPasswordError}</p>
+              )}
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setResetModal(null); setResetPasswordValue(""); setResetPasswordError(null) }}
+                disabled={isResettingPassword}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/70 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={isResettingPassword || resetPasswordValue.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-500 text-white text-sm font-semibold hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {isResettingPassword ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <KeyRound className="w-4 h-4" />
+                )}
+                {isResettingPassword ? "Resetando..." : "Confirmar Reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AppFooter />
     </div>
   )

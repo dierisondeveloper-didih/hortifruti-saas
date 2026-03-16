@@ -61,6 +61,31 @@ export async function PUT(request: Request) {
   return NextResponse.json({ success: true })
 }
 
+// ─── PATCH /api/super-admin/lojas ─────────────────────────────────────────────
+export async function PATCH(request: Request) {
+  const { authorized, error } = await verifySuperAdmin(request)
+  if (!authorized) return NextResponse.json({ error }, { status: 403 })
+
+  const { donoId, newPassword } = await request.json()
+
+  if (!donoId || !newPassword) {
+    return NextResponse.json({ error: "Campos obrigatórios ausentes" }, { status: 400 })
+  }
+  if (newPassword.length < 6) {
+    return NextResponse.json({ error: "A senha deve ter pelo menos 6 caracteres" }, { status: 400 })
+  }
+
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(donoId, {
+    password: newPassword,
+  })
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}
+
 // ─── DELETE /api/super-admin/lojas ────────────────────────────────────────────
 export async function DELETE(request: Request) {
   const { authorized, error } = await verifySuperAdmin(request)
