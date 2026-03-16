@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Package, ImagePlus, Loader2 } from "lucide-react"
+import { X, Package, ImagePlus, Loader2, Upload, Camera } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
 // Conectando com o seu banco Supabase
@@ -159,50 +159,75 @@ export function ProductFormModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
           
-          {/* SESSÃO NOVA: Upload de Imagem */}
-          <div className="flex flex-col gap-1.5">
+          {/* Foto do Produto */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">
               Foto do Produto
             </label>
-            <div className="flex items-center gap-4">
-              {/* Preview da Imagem */}
-              <div className="relative flex items-center justify-center w-20 h-20 rounded-xl border border-dashed border-input bg-background overflow-hidden shrink-0">
+
+            {/* Preview */}
+            <div className="flex justify-center">
+              <div className="relative w-28 h-28 rounded-xl border border-dashed border-input bg-background overflow-hidden">
                 {formData.imagem_url ? (
-                  <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                  <>
+                    <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, imagem_url: "" }))}
+                      className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </>
                 ) : (
-                  <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImagePlus className="w-7 h-7 text-muted-foreground" />
+                  </div>
                 )}
-                {/* Spinner de carregamento cobrindo a imagem */}
                 {isUploading && (
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
                     <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   </div>
                 )}
               </div>
-              
-              {/* Botão de Input Falso */}
-              <div className="flex-1">
-                <input
-                  type="file"
-                  id="imagem"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={isUploading}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="imagem"
-                  className={`cursor-pointer inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                >
-                  {formData.imagem_url ? "Trocar foto" : "Escolher foto"}
-                </label>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Formatos aceitos: JPG, PNG.
-                </p>
-              </div>
+            </div>
+
+            {/* Botões de upload */}
+            <div className="flex gap-2">
+              <input
+                type="file"
+                id="imagem-galeria"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={isUploading}
+                className="hidden"
+              />
+              <input
+                type="file"
+                id="imagem-camera"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageUpload}
+                disabled={isUploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="imagem-galeria"
+                className={`flex-1 cursor-pointer inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95 ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
+              >
+                <Upload className="w-4 h-4" />
+                Enviar Imagem
+              </label>
+              <label
+                htmlFor="imagem-camera"
+                className={`flex-1 cursor-pointer inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95 ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
+              >
+                <Camera className="w-4 h-4" />
+                Tirar Foto
+              </label>
             </div>
           </div>
-          {/* FIM DA SESSÃO DE UPLOAD */}
 
           {/* Nome */}
           <div className="flex flex-col gap-1.5">
