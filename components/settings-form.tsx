@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase"
 import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload } from "lucide-react"
 import Image from "next/image"
 
+export type TipoServico = "entrega" | "retirada" | "ambos"
+
 export interface StoreSettings {
   id: string
   nome_loja: string
@@ -12,6 +14,7 @@ export interface StoreSettings {
   taxa_entrega: number
   logo_url?: string
   cor_primaria?: string
+  tipo_servico?: TipoServico
 }
 
 interface SettingsFormProps {
@@ -28,6 +31,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [nomeLoja, setNomeLoja] = useState("")
   const [telefoneWhatsapp, setTelefoneWhatsapp] = useState("")
   const [taxaEntrega, setTaxaEntrega] = useState("")
+  const [tipoServico, setTipoServico] = useState<TipoServico>("ambos")
   const [corPrimaria, setCorPrimaria] = useState("#2d8a4e")
   const [logoUrl, setLogoUrl] = useState("")
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -61,6 +65,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           setNomeLoja("Hortifruti Online")
           setTelefoneWhatsapp("")
           setTaxaEntrega("5.00")
+          setTipoServico("ambos")
           setCorPrimaria("#2d8a4e")
           setLogoUrl("")
         } else {
@@ -71,6 +76,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         setNomeLoja(String(data.nome_loja ?? ""))
         setTelefoneWhatsapp(String(data.telefone_whatsapp ?? ""))
         setTaxaEntrega(String(data.taxa_entrega ?? "0"))
+        setTipoServico((data.tipo_servico as TipoServico) ?? "ambos")
         setCorPrimaria(String(data.cor_primaria ?? "#2d8a4e"))
         setLogoUrl(String(data.logo_url ?? ""))
       }
@@ -141,7 +147,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
       const payload: any = {
         nome_loja: nomeLoja.trim(),
         telefone_whatsapp: phoneClean,
-        taxa_entrega: parseFloat(taxaEntrega) || 0,
+        taxa_entrega: tipoServico === "retirada" ? 0 : (parseFloat(taxaEntrega) || 0),
+        tipo_servico: tipoServico,
         cor_primaria: corPrimaria,
         logo_url: uploadedLogoUrl || null,
         dono_id: user.id
@@ -257,27 +264,61 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         </div>
 
         <div>
-          <label
-            htmlFor="delivery-fee"
-            className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-          >
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
             <Truck className="w-4 h-4 text-primary" />
-            Taxa de Entrega (R$)
+            Tipo de Servico
           </label>
-          <input
-            id="delivery-fee"
-            type="number"
-            step="0.01"
-            min="0"
-            value={taxaEntrega}
-            onChange={(e) => setTaxaEntrega(e.target.value)}
-            placeholder="0.00"
-            className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                { value: "ambos", label: "Entrega e Retirada" },
+                { value: "entrega", label: "Somente Entrega" },
+                { value: "retirada", label: "Somente Retirada" },
+              ] as { value: TipoServico; label: string }[]
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTipoServico(opt.value)}
+                className={`px-3 py-2.5 rounded-xl border text-xs font-medium transition-all text-center ${
+                  tipoServico === opt.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary text-foreground border-border hover:border-primary/50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <p className="text-xs text-muted-foreground mt-1.5">
-            Valor cobrado para entregas. Use 0 para entrega gratis.
+            Define se a loja oferece entrega, retirada ou ambas as opcoes.
           </p>
         </div>
+
+        {tipoServico !== "retirada" && (
+          <div>
+            <label
+              htmlFor="delivery-fee"
+              className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+            >
+              <Truck className="w-4 h-4 text-primary" />
+              Taxa de Entrega (R$)
+            </label>
+            <input
+              id="delivery-fee"
+              type="number"
+              step="0.01"
+              min="0"
+              value={taxaEntrega}
+              onChange={(e) => setTaxaEntrega(e.target.value)}
+              placeholder="0.00"
+              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Valor cobrado para entregas. Use 0 para entrega gratis.
+            </p>
+          </div>
+        )}
 
         <div className="border-t border-border pt-5 mt-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">

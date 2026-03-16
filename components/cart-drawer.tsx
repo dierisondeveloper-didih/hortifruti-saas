@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import {
   X,
@@ -30,7 +30,8 @@ interface CartDrawerProps {
   deliveryFee?: number
   whatsappNumber?: string
   primaryColor?: string
-  donoId?: string 
+  tipoServico?: "entrega" | "retirada" | "ambos"
+  donoId?: string
 }
 
 export function CartDrawer({
@@ -43,10 +44,18 @@ export function CartDrawer({
   deliveryFee = 0,
   whatsappNumber = "5511999999999",
   primaryColor,
-  donoId, 
+  tipoServico = "ambos",
+  donoId,
 }: CartDrawerProps) {
   const [customerName, setCustomerName] = useState("")
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery")
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
+    tipoServico === "retirada" ? "pickup" : "delivery"
+  )
+
+  useEffect(() => {
+    if (tipoServico === "retirada") setDeliveryType("pickup")
+    else if (tipoServico === "entrega") setDeliveryType("delivery")
+  }, [tipoServico])
   const [address, setAddress] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -239,17 +248,29 @@ export function CartDrawer({
                   <label htmlFor="customer-name" className="block text-xs font-medium text-muted-foreground mb-1.5">Nome completo</label>
                   <input id="customer-name" type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Seu nome" className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tipo de recebimento</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => setDeliveryType("delivery")} className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${deliveryType === "delivery" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} style={{ backgroundColor: deliveryType === "delivery" ? primaryColor || undefined : undefined, color: deliveryType === "delivery" && primaryColor ? "#fff" : undefined, borderColor: deliveryType === "delivery" ? primaryColor || undefined : undefined }}>
-                      <Truck className="w-4 h-4" /> Entrega
-                    </button>
-                    <button type="button" onClick={() => setDeliveryType("pickup")} className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${deliveryType === "pickup" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} style={{ backgroundColor: deliveryType === "pickup" ? primaryColor || undefined : undefined, color: deliveryType === "pickup" && primaryColor ? "#fff" : undefined, borderColor: deliveryType === "pickup" ? primaryColor || undefined : undefined }}>
-                      <Store className="w-4 h-4" /> Retirada
-                    </button>
+                {tipoServico === "retirada" ? (
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-secondary border border-border text-sm text-muted-foreground">
+                    <Store className="w-4 h-4 shrink-0" />
+                    <span>Esta loja aceita apenas retirada no local</span>
                   </div>
-                </div>
+                ) : tipoServico === "entrega" ? (
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium border-transparent" style={{ backgroundColor: primaryColor || undefined, color: primaryColor ? "#fff" : undefined }}>
+                    <Truck className="w-4 h-4 shrink-0" />
+                    <span>Entrega</span>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">Tipo de recebimento</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setDeliveryType("delivery")} className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${deliveryType === "delivery" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} style={{ backgroundColor: deliveryType === "delivery" ? primaryColor || undefined : undefined, color: deliveryType === "delivery" && primaryColor ? "#fff" : undefined, borderColor: deliveryType === "delivery" ? primaryColor || undefined : undefined }}>
+                        <Truck className="w-4 h-4" /> Entrega
+                      </button>
+                      <button type="button" onClick={() => setDeliveryType("pickup")} className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${deliveryType === "pickup" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} style={{ backgroundColor: deliveryType === "pickup" ? primaryColor || undefined : undefined, color: deliveryType === "pickup" && primaryColor ? "#fff" : undefined, borderColor: deliveryType === "pickup" ? primaryColor || undefined : undefined }}>
+                        <Store className="w-4 h-4" /> Retirada
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {deliveryType === "delivery" && (
                   <div>
                     <label htmlFor="address" className="block text-xs font-medium text-muted-foreground mb-1.5">Endereco completo</label>

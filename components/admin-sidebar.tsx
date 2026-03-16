@@ -9,9 +9,11 @@ import {
   Users,
   Settings,
   Leaf,
+  LayoutDashboard,
 } from "lucide-react"
 
 export type AdminTab =
+  | "dashboard"
   | "videos"
   | "products"
   | "categories"
@@ -26,6 +28,7 @@ interface AdminSidebarProps {
 }
 
 const menuItems: { id: AdminTab; label: string; icon: typeof Video }[] = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "videos", label: "Atualizacao de Videos", icon: Video },
   { id: "products", label: "Gestao de Produtos", icon: Package },
   { id: "categories", label: "Categorias", icon: Tags },

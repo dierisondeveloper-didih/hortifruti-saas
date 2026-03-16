@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Leaf, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { AppFooter } from "@/components/app-footer"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -68,8 +69,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 gap-0">
+      <div className="w-full max-w-sm flex-1 flex flex-col justify-center">
         {/* Logo and title */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
@@ -173,6 +174,7 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+      <AppFooter />
     </div>
   )
 }

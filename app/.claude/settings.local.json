@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Projetos_Dev\\\\hortifruti-app\" && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(cd /c/Projetos_Dev/hortifruti-app && npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

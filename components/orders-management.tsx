@@ -64,6 +64,7 @@ interface OrdersManagementProps {
 
 export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   const [orders, setOrders] = useState<Order[]>([])
+  const [tipoServico, setTipoServico] = useState<"entrega" | "retirada" | "ambos">("ambos")
   const [isLoading, setIsLoading] = useState(true)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
@@ -76,6 +77,15 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
       setIsLoading(false)
       return
     }
+
+    const { data: configData } = await supabase
+      .from("configuracoes")
+      .select("tipo_servico")
+      .eq("dono_id", user.id)
+      .limit(1)
+      .maybeSingle()
+
+    setTipoServico((configData?.tipo_servico as "entrega" | "retirada" | "ambos") ?? "ambos")
 
     const { data, error } = await supabase
       .from("pedidos")
@@ -263,6 +273,14 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
           Atualizar
         </button>
       </div>
+
+      {/* Aviso de retirada */}
+      {tipoServico === "retirada" && (
+        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-sm text-yellow-700">
+          <Store className="w-4 h-4 shrink-0" />
+          <span>Esta loja opera apenas com retirada no local</span>
+        </div>
+      )}
 
       {/* Empty state */}
       {orders.length === 0 && (

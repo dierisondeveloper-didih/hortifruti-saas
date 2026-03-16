@@ -22,6 +22,7 @@ import {
   Wrench,
   ExternalLink,
 } from "lucide-react"
+import { AppFooter } from "@/components/app-footer"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -619,6 +620,7 @@ export default function SuperAdminPage() {
           </div>
         )}
       </div>
+      <AppFooter />
     </div>
   )
 }

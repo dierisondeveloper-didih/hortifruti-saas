@@ -12,6 +12,7 @@ import { getProductImage, formatFreshTimestamp } from "@/lib/product-utils"
 import { FullScreenVideoPlayer } from "@/components/fullscreen-video-player"
 import { CartDrawer, type CartItem } from "@/components/cart-drawer"
 import { ProductDetailsModal } from "@/components/product-details-modal"
+import { AppFooter } from "@/components/app-footer"
 
 function seededRandom(seed: string): number {
   let hash = 0
@@ -50,6 +51,7 @@ interface StoreSettings {
   taxa_entrega: number
   logo_url?: string
   cor_primaria?: string
+  tipo_servico?: "entrega" | "retirada" | "ambos"
 }
 
 export default function StoreCatalog() {
@@ -116,6 +118,7 @@ export default function StoreCatalog() {
           taxa_entrega: Number(settingsData?.taxa_entrega ?? 0),
           logo_url: settingsData?.logo_url ? String(settingsData?.logo_url) : undefined,
           cor_primaria: settingsData?.cor_primaria ? String(settingsData?.cor_primaria) : undefined,
+          tipo_servico: (settingsData?.tipo_servico as "entrega" | "retirada" | "ambos") ?? "ambos",
         })
       }
 
@@ -265,17 +268,20 @@ export default function StoreCatalog() {
       )}
       <ProductDetailsModal product={detailsProduct} isOpen={!!detailsProduct} onClose={handleCloseDetails} onAddToCart={handleAddToCart} primaryColor={settings?.cor_primaria} />
       
+      <AppFooter primaryColor={settings?.cor_primaria} />
+
       {storeDonoId && (
-        <CartDrawer 
-          isOpen={isCartOpen} 
-          onClose={() => setIsCartOpen(false)} 
-          items={cartItems} 
-          onUpdateQuantity={handleUpdateQuantity} 
-          onRemoveItem={handleRemoveItem} 
-          onClearCart={handleClearCart} 
-          deliveryFee={settings?.taxa_entrega ?? 0} 
-          whatsappNumber={settings?.telefone_whatsapp || "5511999999999"} 
+        <CartDrawer
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          items={cartItems}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveItem}
+          onClearCart={handleClearCart}
+          deliveryFee={settings?.taxa_entrega ?? 0}
+          whatsappNumber={settings?.telefone_whatsapp || "5511999999999"}
           primaryColor={settings?.cor_primaria}
+          tipoServico={settings?.tipo_servico ?? "ambos"}
           donoId={storeDonoId}
         />
       )}

@@ -15,6 +15,8 @@ import { Loader2, WifiOff, RefreshCw, Construction } from "lucide-react"
 import { SettingsForm } from "@/components/settings-form"
 import { CategoryManagement } from "@/components/category-management"
 import { OrdersManagement } from "@/components/orders-management"
+import { AdminDashboard } from "@/components/admin-dashboard"
+import { AppFooter } from "@/components/app-footer"
 
 function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
   const name = String(row.nome ?? "")
@@ -38,7 +40,7 @@ export default function AdminPage() {
   const [isAuthChecking, setIsAuthChecking] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<AdminTab>("videos")
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard")
 
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [managedProducts, setManagedProducts] = useState<ManagedProduct[]>([])
@@ -325,14 +327,16 @@ export default function AdminPage() {
         onTabChange={setActiveTab}
       />
 
-      {isLoading && (
+      {activeTab === "dashboard" && <AdminDashboard />}
+
+      {activeTab !== "dashboard" && isLoading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="text-sm text-muted-foreground">Carregando produtos...</p>
         </div>
       )}
 
-      {!isLoading && error && (
+      {activeTab !== "dashboard" && !isLoading && error && (
         <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
           <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
             <WifiOff className="w-6 h-6 text-destructive" />
@@ -351,7 +355,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {!isLoading && !error && (
+      {activeTab !== "dashboard" && !isLoading && !error && (
         <>
           {activeTab === "videos" && (
             <>
@@ -386,6 +390,8 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      <AppFooter />
 
       <CameraModal
         product={cameraProduct}

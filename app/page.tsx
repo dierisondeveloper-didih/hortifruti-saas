@@ -1,9 +1,10 @@
 import Link from "next/link"
 import { Building2, Store, LogIn } from "lucide-react"
+import { AppFooter } from "@/components/app-footer"
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md flex flex-col items-center text-center gap-8">
 
         {/* Logo */}
@@ -44,6 +45,7 @@ export default function Home() {
         </div>
 
       </div>
+      <AppFooter />
     </div>
   )
 }
