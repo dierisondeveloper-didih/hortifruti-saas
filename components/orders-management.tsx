@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Trash2,
 } from "lucide-react"
 
 interface OrderItem {
@@ -68,6 +69,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [deletingOrder, setDeletingOrder] = useState<string | null>(null)
 
   const fetchOrders = useCallback(async () => {
     setIsLoading(true)
@@ -219,6 +221,34 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
       )
     } finally {
       setUpdatingStatus(null)
+    }
+  }
+
+  const handleDeleteOrder = async (orderId: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este pedido?")
+    if (!confirmed) return
+
+    setDeletingOrder(orderId)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Usuário não autenticado")
+
+      const { error } = await supabase
+        .from("pedidos")
+        .delete()
+        .eq("id", orderId)
+        .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
+
+      if (error) {
+        alert("Erro ao excluir pedido: " + error.message)
+      } else {
+        await fetchOrders()
+      }
+    } catch (err) {
+      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setDeletingOrder(null)
     }
   }
 
@@ -395,7 +425,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
                     <p className="text-xs font-medium text-muted-foreground mb-2">
                       Alterar status
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {order.status !== "pendente" && (
                         <button
                           onClick={() =>
@@ -444,6 +474,18 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
                           Cancelado
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={deletingOrder === order.id}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                        title="Excluir pedido"
+                      >
+                        {deletingOrder === order.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
