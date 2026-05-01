@@ -8,7 +8,7 @@ export function AppFooter({ primaryColor }: AppFooterProps) {
       <p>
         {"© 2026 "}
         <span style={primaryColor ? { color: primaryColor } : undefined}>
-          Vértice Digital
+          Vertyx Tureta e Santos SA
         </span>
         {". Todos os direitos reservados."}
       </p>
