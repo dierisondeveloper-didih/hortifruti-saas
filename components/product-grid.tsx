@@ -30,7 +30,7 @@ export function ProductGrid({ products, onAddToCart, onVideoClick, onDetailsClic
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 px-4 pb-8 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-3 gap-2 px-3 pb-8 md:grid-cols-3 md:gap-3 md:px-4 lg:grid-cols-4">
       {products.map((product) => (
         <ProductCard
           key={product.id}

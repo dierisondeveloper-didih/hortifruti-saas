@@ -142,25 +142,24 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
       </div>
 
       {/* Product info */}
-      <div className="flex flex-col gap-1.5 p-3">
-        <h3 className="text-sm font-semibold text-foreground leading-tight line-clamp-1">
+      <div className="flex flex-col gap-1 p-2 md:gap-1.5 md:p-3">
+        <h3 className="text-[11px] md:text-sm font-semibold text-foreground leading-tight line-clamp-1">
           {product.name}
         </h3>
 
         {/* Price and Add button */}
-        <div className="flex items-end justify-between mt-auto">
-          <div className="flex flex-col">
+        <div className="flex items-end justify-between mt-auto gap-1">
+          <div className="flex flex-col min-w-0">
             {product.isOffer && product.offerPrice && (
-              <span className="text-[11px] text-muted-foreground line-through">
+              <span className="text-[9px] md:text-[11px] text-muted-foreground line-through truncate">
                 R${" "}
                 {product.price.toLocaleString("pt-BR", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
-                /{product.unit}
               </span>
             )}
-            <span className="text-base font-bold text-foreground">
+            <span className="text-xs md:text-base font-bold text-foreground leading-none">
               R${" "}
               {(product.isOffer && product.offerPrice
                 ? product.offerPrice
@@ -169,7 +168,7 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
-              <span className="text-xs font-normal text-muted-foreground">
+              <span className="text-[10px] md:text-xs font-normal text-muted-foreground block md:inline">
                 /{product.unit}
               </span>
             </span>
@@ -178,7 +177,7 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
           <button
             onClick={handleAdd}
             disabled={added}
-            className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
+            className={`flex items-center justify-center w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl shrink-0 transition-all ${
               added
                 ? "bg-accent text-accent-foreground scale-95"
                 : "hover:brightness-110 active:scale-95"
@@ -190,9 +189,9 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
             aria-label={`Adicionar ${product.name} ao carrinho`}
           >
             {added ? (
-              <Check className="w-4 h-4" />
+              <Check className="w-3 h-3 md:w-4 md:h-4" />
             ) : (
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3 md:w-4 md:h-4" />
             )}
           </button>
         </div>
