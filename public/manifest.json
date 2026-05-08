@@ -1,0 +1,18 @@
+{
+  "name": "Hortifruti Online",
+  "short_name": "Hortifruti",
+  "description": "Frescor direto do campo na sua casa.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d8a4e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo-principal.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

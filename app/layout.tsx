@@ -8,22 +8,15 @@ export const metadata: Metadata = {
   title: 'Hortifruti Online - Frescor direto do campo',
   description: 'Compre frutas, verduras e legumes frescos com entrega rapida. Veja videos de frescor dos nossos produtos.',
   generator: 'v0.app',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Hortifruti Online',
+  },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/logo-principal.png',
+    apple: '/logo-principal.png',
   },
 }
 
