@@ -1,7 +1,8 @@
 "use client"
 
 import Image from "next/image"
-import { ShoppingCart, Leaf } from "lucide-react"
+import { ShoppingCart, Leaf, Home } from "lucide-react"
+import Link from "next/link"
 
 interface StoreHeaderProps {
   storeName?: string
@@ -65,24 +66,40 @@ export function StoreHeader({
           </div>
         </div>
 
-        <button
-          onClick={onCartClick}
-          className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
-          style={{
-            backgroundColor: primaryColor ? "rgba(255,255,255,0.2)" : undefined,
-          }}
-          aria-label={`Carrinho com ${cartCount} itens`}
-        >
-          <ShoppingCart
-            className="w-5 h-5"
-            style={{ color: primaryColor ? "#fff" : undefined }}
-          />
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-bold bg-red-500 text-white rounded-full animate-in zoom-in duration-200">
-              {cartCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
+            style={{
+              backgroundColor: primaryColor ? "rgba(255,255,255,0.2)" : undefined,
+            }}
+            aria-label="Voltar para a página inicial"
+          >
+            <Home
+              className="w-5 h-5"
+              style={{ color: primaryColor ? "#fff" : undefined }}
+            />
+          </Link>
+
+          <button
+            onClick={onCartClick}
+            className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
+            style={{
+              backgroundColor: primaryColor ? "rgba(255,255,255,0.2)" : undefined,
+            }}
+            aria-label={`Carrinho com ${cartCount} itens`}
+          >
+            <ShoppingCart
+              className="w-5 h-5"
+              style={{ color: primaryColor ? "#fff" : undefined }}
+            />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-bold bg-red-500 text-white rounded-full animate-in zoom-in duration-200">
+                {cartCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </header>
   )

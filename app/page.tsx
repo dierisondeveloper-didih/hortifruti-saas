@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Store, LogIn, Video, Zap, TrendingUp, ArrowRight, Link as LinkIcon } from "lucide-react"
+import { Store, LogIn, Video, Zap, TrendingUp, ArrowRight, Link as LinkIcon, History, X } from "lucide-react"
 import { AppFooter } from "@/components/app-footer"
 import { Logo } from "@/components/ui/logo"
 
@@ -16,13 +16,33 @@ const features = [
 export default function Home() {
   const router = useRouter()
   const [storeLink, setStoreLink] = useState("")
+  const [recentStores, setRecentStores] = useState<string[]>([])
 
-  const handleAccessStore = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!storeLink.trim()) return
+  // Carrega histórico do localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("recent_stores")
+    if (saved) {
+      try {
+        setRecentStores(JSON.parse(saved))
+      } catch {
+        setRecentStores([])
+      }
+    }
+  }, [])
 
-    // Tenta extrair o slug se for uma URL completa, ou usa o texto direto
-    let slug = storeLink.trim()
+  const saveToHistory = (slug: string) => {
+    const newHistory = [slug, ...recentStores.filter(s => s !== slug)].slice(0, 5)
+    setRecentStores(newHistory)
+    localStorage.setItem("recent_stores", JSON.stringify(newHistory))
+  }
+
+  const handleAccessStore = (e?: React.FormEvent, manualSlug?: string) => {
+    if (e) e.preventDefault()
+    
+    let slug = manualSlug || storeLink.trim()
+    if (!slug) return
+
+    // Tenta extrair o slug se for uma URL completa
     try {
       if (slug.includes("/") && !slug.startsWith("/")) {
         const url = new URL(slug.startsWith("http") ? slug : `https://${slug}`)
@@ -31,12 +51,20 @@ export default function Home() {
         slug = slug.split("/").filter(Boolean)[0] || ""
       }
     } catch {
-      // Se falhar o parse da URL, mantém o que foi digitado
+      // Mantém o que foi digitado
     }
 
     if (slug) {
+      saveToHistory(slug)
       router.push(`/${slug}`)
     }
+  }
+
+  const removeStoreFromHistory = (e: React.MouseEvent, slug: string) => {
+    e.stopPropagation()
+    const newHistory = recentStores.filter(s => s !== slug)
+    setRecentStores(newHistory)
+    localStorage.setItem("recent_stores", JSON.stringify(newHistory))
   }
 
   return (
@@ -194,6 +222,38 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+
+            {/* Lojas Recentes (Histórico) */}
+            {recentStores.length > 0 && (
+              <div className="flex flex-col gap-2 mt-1 animate-in fade-in slide-in-from-top-2 duration-500">
+                <div className="flex items-center gap-1.5 px-1">
+                  <History className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                    Acessos Recentes
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recentStores.map((slug) => (
+                    <div
+                      key={slug}
+                      onClick={() => handleAccessStore(undefined, slug)}
+                      className="group/item relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/40 border border-border/40 hover:bg-white/80 hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all active:scale-95"
+                    >
+                      <span className="text-xs font-medium text-foreground/80 group-hover/item:text-primary transition-colors">
+                        /{slug}
+                      </span>
+                      <button
+                        onClick={(e) => removeStoreFromHistory(e, slug)}
+                        className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded-md hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all"
+                        aria-label="Remover do histórico"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* CTA */}
