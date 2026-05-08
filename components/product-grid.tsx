@@ -8,9 +8,11 @@ interface ProductGridProps {
   onVideoClick?: (videoUrl: string, productName: string) => void
   onDetailsClick?: (product: Product) => void
   primaryColor?: string
+  favorites?: string[]
+  onToggleFavorite?: (productId: string) => void
 }
 
-export function ProductGrid({ products, onAddToCart, onVideoClick, onDetailsClick, primaryColor }: ProductGridProps) {
+export function ProductGrid({ products, onAddToCart, onVideoClick, onDetailsClick, primaryColor, favorites = [], onToggleFavorite }: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -39,6 +41,8 @@ export function ProductGrid({ products, onAddToCart, onVideoClick, onDetailsClic
           onVideoClick={onVideoClick}
           onDetailsClick={onDetailsClick}
           primaryColor={primaryColor}
+          isFavorite={favorites.includes(product.id)}
+          onToggleFavorite={onToggleFavorite}
         />
       ))}
     </div>

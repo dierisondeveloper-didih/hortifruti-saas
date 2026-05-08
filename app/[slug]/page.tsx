@@ -72,8 +72,28 @@ export default function StoreCatalog() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [fullscreenVideo, setFullscreenVideo] = useState<{ url: string; name: string } | null>(null)
   const [detailsProduct, setDetailsProduct] = useState<Product | null>(null)
+  const [favorites, setFavorites] = useState<string[]>([])
   
   const [storeDonoId, setStoreDonoId] = useState<string>("")
+
+  // Carrega favoritos do localStorage quando o componente é montado
+  useEffect(() => {
+    const savedFavs = localStorage.getItem("hortifruti_favorites")
+    if (savedFavs) {
+      try {
+        setFavorites(JSON.parse(savedFavs))
+      } catch (e) {}
+    }
+  }, [])
+
+  const handleToggleFavorite = (productId: string) => {
+    setFavorites((prev) => {
+      const isFav = prev.includes(productId)
+      const newFavs = isFav ? prev.filter(id => id !== productId) : [...prev, productId]
+      localStorage.setItem("hortifruti_favorites", JSON.stringify(newFavs))
+      return newFavs
+    })
+  }
 
   const cartCount = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
 
@@ -152,7 +172,10 @@ export default function StoreCatalog() {
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      if (activeCategory === "favoritos") return matchesSearch && favorites.includes(p.id)
       if (activeCategory === "ofertas") return matchesSearch && p.isOffer
+      
       const matchesCategory = activeCategory === "all" || p.category === activeCategory
       
       // Evita duplicidade: oculta ofertas do grid se elas já estiverem no carrossel de cima
@@ -162,7 +185,7 @@ export default function StoreCatalog() {
 
       return matchesSearch && matchesCategory
     })
-  }, [products, searchQuery, activeCategory])
+  }, [products, searchQuery, activeCategory, favorites])
 
   const offerProducts = useMemo(() => products.filter(p => p.isOffer), [products])
 
@@ -297,6 +320,8 @@ export default function StoreCatalog() {
                           onVideoClick={handleVideoClick}
                           onDetailsClick={handleDetailsClick}
                           primaryColor={settings?.cor_primaria}
+                          isFavorite={favorites.includes(product.id)}
+                          onToggleFavorite={handleToggleFavorite}
                         />
                       </CarouselItem>
                     ))}
@@ -319,6 +344,8 @@ export default function StoreCatalog() {
               onVideoClick={handleVideoClick}
               onDetailsClick={handleDetailsClick}
               primaryColor={settings?.cor_primaria}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
             />
           </>
         )}

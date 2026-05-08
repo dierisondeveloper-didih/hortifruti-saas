@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Clock, Plus, Check, Flame } from "lucide-react"
+import { Clock, Plus, Check, Flame, Heart } from "lucide-react"
 import type { Product } from "./product-card"
 
 interface OfferCardProps {
@@ -11,9 +11,11 @@ interface OfferCardProps {
   onVideoClick?: (videoUrl: string, productName: string) => void
   onDetailsClick?: (product: Product) => void
   primaryColor?: string
+  isFavorite?: boolean
+  onToggleFavorite?: (productId: string) => void
 }
 
-export function OfferCard({ product, onAddToCart, onVideoClick, onDetailsClick, primaryColor }: OfferCardProps) {
+export function OfferCard({ product, onAddToCart, onVideoClick, onDetailsClick, primaryColor, isFavorite, onToggleFavorite }: OfferCardProps) {
   const [added, setAdded] = useState(false)
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -52,6 +54,20 @@ export function OfferCard({ product, onAddToCart, onVideoClick, onDetailsClick, 
           <Flame className="w-3 h-3" />
           OFERTA
         </div>
+
+        {/* Favorite Button */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleFavorite(product.id)
+            }}
+            className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/30 text-white backdrop-blur-md hover:bg-black/50 transition-colors shadow-sm"
+            aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Heart className={`w-4 h-4 transition-all duration-300 ${isFavorite ? "fill-red-500 text-red-500 scale-110" : ""}`} />
+          </button>
+        )}
 
         {/* Video/Image Area */}
         <div

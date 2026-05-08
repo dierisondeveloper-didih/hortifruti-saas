@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { Search, Flame, Tag } from "lucide-react"
+import { Search, Flame, Tag, Heart } from "lucide-react"
 
 export interface CategoryFilter {
   id: string
@@ -29,6 +29,7 @@ export function SearchAndFilters({
   const filterButtons = useMemo(() => {
     const buttons: { id: string; filterId: string; label: string; icon?: typeof Tag }[] = [
       { id: "btn-all", filterId: "all", label: "Todos" },
+      { id: "btn-fav", filterId: "favoritos", label: "Favoritos", icon: Heart as any },
     ]
 
     // Add dynamic categories from database using unique database IDs

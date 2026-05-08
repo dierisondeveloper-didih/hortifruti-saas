@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Clock, Plus, Check } from "lucide-react"
+import { Clock, Plus, Check, Heart } from "lucide-react"
 
 // Product interface for catalog items
 export interface Product {
@@ -27,9 +27,11 @@ interface ProductCardProps {
   onVideoClick?: (videoUrl: string, productName: string) => void
   onDetailsClick?: (product: Product) => void
   primaryColor?: string
+  isFavorite?: boolean
+  onToggleFavorite?: (productId: string) => void
 }
 
-export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick, primaryColor }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick, primaryColor, isFavorite, onToggleFavorite }: ProductCardProps) {
   const [added, setAdded] = useState(false)
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -124,14 +126,28 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
           </div>
         )}
 
-        {/* Offer badge */}
-        {product.isOffer && (
-          <div className="absolute top-2.5 right-2.5">
+        {/* Top Right Badges (Favorite & Offer) */}
+        <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleFavorite(product.id)
+              }}
+              className="p-1.5 rounded-full bg-black/30 text-white backdrop-blur-md hover:bg-black/50 transition-colors shadow-sm"
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            >
+              <Heart className={`w-4 h-4 transition-all duration-300 ${isFavorite ? "fill-red-500 text-red-500 scale-110" : ""}`} />
+            </button>
+          )}
+
+          {/* Offer badge */}
+          {product.isOffer && (
             <div className="px-2 py-1 rounded-lg bg-accent text-accent-foreground text-[11px] font-bold shadow-lg">
               OFERTA
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Video progress bar — only when video exists */}
         {product.videoUrl && (
