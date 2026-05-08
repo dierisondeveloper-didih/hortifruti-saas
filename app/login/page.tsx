@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Leaf, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { AppFooter } from "@/components/app-footer"
+import { Logo } from "@/components/ui/logo"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -73,8 +74,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm flex-1 flex flex-col justify-center">
         {/* Logo and title */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <Leaf className="w-8 h-8 text-primary-foreground" />
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-4 border border-border overflow-hidden">
+            <Logo className="w-16 h-16" iconClassName="w-8 h-8" width={64} height={64} priority />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Painel Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">

@@ -1,6 +1,7 @@
 "use client"
 
-import { Leaf, LogOut, Menu } from "lucide-react"
+import { LogOut, Menu } from "lucide-react"
+import { Logo } from "./ui/logo"
 
 interface AdminHeaderProps {
   onMenuClick?: () => void
@@ -21,8 +22,8 @@ export function AdminHeader({ onMenuClick, onLogout }: AdminHeaderProps) {
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary">
-            <Leaf className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-border overflow-hidden">
+            <Logo className="w-9 h-9" iconClassName="w-5 h-5" width={36} height={36} />
           </div>
           <div>
             <h1 className="text-base font-bold text-foreground leading-tight">

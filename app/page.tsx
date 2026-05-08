@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Store, LogIn, Video, Zap, TrendingUp } from "lucide-react"
 import { AppFooter } from "@/components/app-footer"
+import { Logo } from "@/components/ui/logo"
 
 const features = [
   { icon: Video, label: "Vídeo ao vivo" },
@@ -79,40 +80,10 @@ export default function Home() {
           <div className="lp-fade-up" style={{ animationDelay: "0ms" }}>
             <div className="lp-icon-float">
               <div
-                className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center"
+                className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center overflow-hidden"
                 style={{ boxShadow: "0 8px 32px oklch(0.55 0.17 150 / 0.28)" }}
               >
-                <svg
-                  viewBox="0 0 48 48"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-11 h-11"
-                >
-                  <defs>
-                    <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.78 0.20 145)" />
-                      <stop offset="100%" stopColor="oklch(0.42 0.17 150)" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M24 5C24 5 9 14 9 27C9 35.837 15.82 43 24 43C32.18 43 39 35.837 39 27C39 14 24 5 24 5Z"
-                    fill="url(#leafGrad)"
-                  />
-                  <path
-                    d="M24 43V21"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    opacity="0.55"
-                  />
-                  <path
-                    d="M24 29C21 25 17.5 24 14 25"
-                    stroke="white"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    opacity="0.45"
-                  />
-                </svg>
+                <Logo className="w-20 h-20" iconClassName="w-11 h-11" width={80} height={80} priority />
               </div>
             </div>
           </div>

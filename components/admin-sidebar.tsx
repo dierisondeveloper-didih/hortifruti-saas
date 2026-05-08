@@ -8,9 +8,9 @@ import {
   Tags,
   Users,
   Settings,
-  Leaf,
   LayoutDashboard,
 } from "lucide-react"
+import { Logo } from "./ui/logo"
 
 export type AdminTab =
   | "dashboard"
@@ -32,7 +32,7 @@ const menuItems: { id: AdminTab; label: string; icon: typeof Video }[] = [
   { id: "videos", label: "Atualizacao de Videos", icon: Video },
   { id: "products", label: "Gestao de Produtos", icon: Package },
   { id: "categories", label: "Categorias", icon: Tags },
-  { id: "customers", label: "Clientes", icon: Users },
+  { id: "customers", label: "Pedidos", icon: Users },
   { id: "settings", label: "Configuracoes", icon: Settings },
 ]
 
@@ -82,8 +82,8 @@ export function AdminSidebar({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary">
-              <Leaf className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-border overflow-hidden">
+              <Logo className="w-9 h-9" iconClassName="w-5 h-5" width={36} height={36} />
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground leading-tight">
