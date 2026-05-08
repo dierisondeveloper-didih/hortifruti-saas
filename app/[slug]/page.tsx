@@ -13,6 +13,7 @@ import { FullScreenVideoPlayer } from "@/components/fullscreen-video-player"
 import { CartDrawer, type CartItem } from "@/components/cart-drawer"
 import { ProductDetailsModal } from "@/components/product-details-modal"
 import { AppFooter } from "@/components/app-footer"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function seededRandom(seed: string): number {
   let hash = 0
@@ -80,6 +81,9 @@ export default function StoreCatalog() {
     setError(null)
 
     try {
+      // Pequeno delay artificial para evitar flicker e permitir visualização do Skeleton localmente
+      await new Promise(resolve => setTimeout(resolve, 600))
+
       // 1. Acha a Loja
       const { data: lojaData, error: lojaError } = await supabase
         .from("lojas")
@@ -219,9 +223,22 @@ export default function StoreCatalog() {
 
       <section aria-label="Produtos disponiveis" className="pt-2">
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Carregando produtos frescos...</p>
+          <div className="grid grid-cols-3 gap-2 px-3 pb-8 md:grid-cols-3 md:gap-3 md:px-4 lg:grid-cols-4 pt-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex flex-col rounded-2xl bg-card border border-border overflow-hidden shadow-sm">
+                <Skeleton className="aspect-[3/4] w-full rounded-none" />
+                <div className="flex flex-col gap-1 p-2 md:gap-1.5 md:p-3">
+                  <Skeleton className="h-3 md:h-4 w-3/4 rounded-lg" />
+                  <div className="flex items-end justify-between mt-auto pt-2 gap-1">
+                    <div className="flex flex-col w-full gap-1 md:gap-1.5">
+                      <Skeleton className="h-2 md:h-3 w-1/2 rounded-lg" />
+                      <Skeleton className="h-4 md:h-5 w-2/3 rounded-lg" />
+                    </div>
+                    <Skeleton className="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl shrink-0" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

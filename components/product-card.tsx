@@ -177,19 +177,20 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
           <button
             onClick={handleAdd}
             disabled={added}
-            className={`flex items-center justify-center w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl shrink-0 transition-all ${
+            className={`flex items-center justify-center w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl shrink-0 transition-all duration-300 ${
               added
-                ? "bg-accent text-accent-foreground scale-95"
+                ? "shadow-md shadow-green-500/20"
                 : "hover:brightness-110 active:scale-95"
             }`}
             style={{
-              backgroundColor: added ? undefined : primaryColor || undefined,
-              color: added ? undefined : primaryColor ? "#fff" : undefined,
+              backgroundColor: added ? "#22c55e" : primaryColor || undefined,
+              color: added ? "#ffffff" : primaryColor ? "#ffffff" : undefined,
+              transform: added ? "scale(1.1)" : "scale(1)",
             }}
             aria-label={`Adicionar ${product.name} ao carrinho`}
           >
             {added ? (
-              <Check className="w-3 h-3 md:w-4 md:h-4" />
+              <Check className="w-3 h-3 md:w-4 md:h-4 animate-in zoom-in duration-300" />
             ) : (
               <Plus className="w-3 h-3 md:w-4 md:h-4" />
             )}
