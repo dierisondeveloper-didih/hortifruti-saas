@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { X, Package, ImagePlus, Loader2, Upload, Camera } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
+import { Switch } from "@/components/ui/switch"
 
 // Conectando com o seu banco Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -40,6 +41,8 @@ const defaultData: ProductFormData = {
   estoque: 0,
   categoria: "frutas",
   imagem_url: "",
+  em_oferta: false,
+  preco_oferta: 0,
 }
 
 export function ProductFormModal({
@@ -334,6 +337,46 @@ export function ProductFormModal({
                 ))
               )}
             </select>
+          </div>
+
+          {/* Oferta */}
+          <div className="flex flex-col gap-3 p-4 rounded-xl border border-border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-0.5">
+                <label className="text-sm font-medium text-foreground">Produto em Oferta?</label>
+                <span className="text-xs text-muted-foreground">Destaca o produto no topo do catálogo</span>
+              </div>
+              <Switch
+                checked={formData.em_oferta}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, em_oferta: checked }))
+                }
+              />
+            </div>
+            
+            {formData.em_oferta && (
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-border/50 animate-in slide-in-from-top-2 duration-300">
+                <label htmlFor="preco_oferta" className="text-sm font-medium text-foreground">
+                  Preço da Oferta (R$)
+                </label>
+                <input
+                  id="preco_oferta"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.preco_oferta || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      preco_oferta: parseFloat(e.target.value) || 0,
+                    }))
+                  }
+                  placeholder="Ex: 4,99"
+                  className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  required={formData.em_oferta}
+                />
+              </div>
+            )}
           </div>
 
           {/* Actions */}

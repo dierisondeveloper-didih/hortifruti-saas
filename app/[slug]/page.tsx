@@ -5,15 +5,17 @@ import { useParams } from "next/navigation"
 import { StoreHeader } from "@/components/store-header"
 import { SearchAndFilters, type CategoryFilter } from "@/components/search-and-filters"
 import { ProductGrid } from "@/components/product-grid"
-import type { Product } from "@/components/product-card"
+import { ProductCard, type Product } from "@/components/product-card"
+import { OfferCard } from "@/components/offer-card"
 import { supabase } from "@/lib/supabase"
-import { Loader2, WifiOff, RefreshCw, Store } from "lucide-react"
+import { Loader2, WifiOff, RefreshCw, Store, Tag } from "lucide-react"
 import { getProductImage, formatFreshTimestamp } from "@/lib/product-utils"
 import { FullScreenVideoPlayer } from "@/components/fullscreen-video-player"
 import { CartDrawer, type CartItem } from "@/components/cart-drawer"
 import { ProductDetailsModal } from "@/components/product-details-modal"
 import { AppFooter } from "@/components/app-footer"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
 function seededRandom(seed: string): number {
   let hash = 0
@@ -152,9 +154,17 @@ export default function StoreCatalog() {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
       if (activeCategory === "ofertas") return matchesSearch && p.isOffer
       const matchesCategory = activeCategory === "all" || p.category === activeCategory
+      
+      // Evita duplicidade: oculta ofertas do grid se elas já estiverem no carrossel de cima
+      if (activeCategory === "all" && !searchQuery && p.isOffer) {
+        return false
+      }
+
       return matchesSearch && matchesCategory
     })
   }, [products, searchQuery, activeCategory])
+
+  const offerProducts = useMemo(() => products.filter(p => p.isOffer), [products])
 
   const handleAddToCart = (productId: string) => {
     const product = products.find((p) => p.id === productId)
@@ -263,8 +273,42 @@ export default function StoreCatalog() {
 
         {!isLoading && !error && (
           <>
+            {offerProducts.length > 0 && activeCategory === "all" && !searchQuery && (
+              <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-2 px-4 pb-3">
+                  <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-orange-500/10 text-orange-500">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-sm font-bold text-foreground">Ofertas do Dia</h2>
+                </div>
+                <Carousel
+                  opts={{
+                    align: "start",
+                    dragFree: true,
+                  }}
+                  className="w-full"
+                >
+                  <CarouselContent className="-ml-3 pr-4">
+                    {offerProducts.map((product) => (
+                      <CarouselItem key={product.id} className="pl-3 basis-[55%] sm:basis-[45%] md:basis-[30%] lg:basis-[22%]">
+                        <OfferCard
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          onVideoClick={handleVideoClick}
+                          onDetailsClick={handleDetailsClick}
+                          primaryColor={settings?.cor_primaria}
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              </div>
+            )}
+
             <div className="flex items-center justify-between px-4 pb-3">
-              <h2 className="text-sm font-semibold text-foreground">Fresquinhos para voce</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                {activeCategory === "ofertas" ? "Todas as Ofertas" : "Fresquinhos para voce"}
+              </h2>
               <span className="text-xs text-muted-foreground">
                 {filteredProducts.length} {filteredProducts.length === 1 ? "produto" : "produtos"}
               </span>

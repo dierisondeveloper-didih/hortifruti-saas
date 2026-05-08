@@ -100,6 +100,8 @@ export default function AdminPage() {
             stock: Number(row.estoque ?? 0),
             category: String(row.categoria ?? ""),
             image: row.imagem_url ? String(row.imagem_url) : getProductImage(String(row.nome ?? "")),
+            isOffer: Boolean(row.em_oferta),
+            offerPrice: row.preco_oferta ? Number(row.preco_oferta) : undefined,
           }))
         )
       }
@@ -180,6 +182,8 @@ export default function AdminPage() {
             estoque: data.estoque,
             categoria: data.categoria,
             imagem_url: data.imagem_url || null,
+            em_oferta: data.em_oferta || false,
+            preco_oferta: data.preco_oferta || 0,
           })
           .eq("id", data.id)
           .eq("dono_id", user.id) // TRAVA DE SEGURANÇA

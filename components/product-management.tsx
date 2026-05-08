@@ -88,6 +88,8 @@ export function ProductManagement({
       estoque: product.stock,
       categoria: product.category,
       imagem_url: product.image,
+      em_oferta: product.isOffer,
+      preco_oferta: product.offerPrice,
     })
     setIsModalOpen(true)
   }
