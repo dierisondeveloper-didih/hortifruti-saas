@@ -1,5 +1,9 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Store, LogIn, Video, Zap, TrendingUp } from "lucide-react"
+import { Store, LogIn, Video, Zap, TrendingUp, ArrowRight, Link as LinkIcon } from "lucide-react"
 import { AppFooter } from "@/components/app-footer"
 import { Logo } from "@/components/ui/logo"
 
@@ -10,6 +14,31 @@ const features = [
 ]
 
 export default function Home() {
+  const router = useRouter()
+  const [storeLink, setStoreLink] = useState("")
+
+  const handleAccessStore = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!storeLink.trim()) return
+
+    // Tenta extrair o slug se for uma URL completa, ou usa o texto direto
+    let slug = storeLink.trim()
+    try {
+      if (slug.includes("/") && !slug.startsWith("/")) {
+        const url = new URL(slug.startsWith("http") ? slug : `https://${slug}`)
+        slug = url.pathname.split("/").filter(Boolean)[0] || ""
+      } else if (slug.startsWith("/")) {
+        slug = slug.split("/").filter(Boolean)[0] || ""
+      }
+    } catch {
+      // Se falhar o parse da URL, mantém o que foi digitado
+    }
+
+    if (slug) {
+      router.push(`/${slug}`)
+    }
+  }
+
   return (
     <>
       <style>{`
@@ -116,7 +145,7 @@ export default function Home() {
 
           {/* Card glassmorphism */}
           <div
-            className="lp-fade-up w-full rounded-2xl p-5 flex items-center gap-3 text-left"
+            className="lp-fade-up w-full rounded-2xl p-5 flex flex-col gap-4 text-left"
             style={{
               animationDelay: "300ms",
               background: "oklch(1 0 0 / 0.65)",
@@ -126,21 +155,45 @@ export default function Home() {
               boxShadow: "0 2px 16px oklch(0.55 0.17 150 / 0.07)",
             }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "oklch(0.94 0.03 145)" }}
-            >
-              <Store
-                className="w-4 h-4"
-                style={{ color: "oklch(0.50 0.05 150)" }}
-              />
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "oklch(0.94 0.03 145)" }}
+              >
+                <Store
+                  className="w-4 h-4"
+                  style={{ color: "oklch(0.50 0.05 150)" }}
+                />
+              </div>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "oklch(0.50 0.02 150)" }}
+              >
+                Procurando uma loja? Solicite o link do catálogo diretamente ao seu lojista.
+              </p>
             </div>
-            <p
-              className="text-sm leading-relaxed"
-              style={{ color: "oklch(0.50 0.02 150)" }}
-            >
-              Procurando uma loja? Solicite o link do catálogo diretamente ao seu lojista.
-            </p>
+
+            {/* Input para colar link */}
+            <form onSubmit={handleAccessStore} className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <LinkIcon className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Já tem o link? Cole aqui..."
+                value={storeLink}
+                onChange={(e) => setStoreLink(e.target.value)}
+                className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-muted-foreground/60"
+              />
+              <button
+                type="submit"
+                disabled={!storeLink.trim()}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center transition-all hover:brightness-110 active:scale-90 disabled:opacity-0 disabled:scale-75"
+                aria-label="Acessar catálogo"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
           </div>
 
           {/* CTA */}
