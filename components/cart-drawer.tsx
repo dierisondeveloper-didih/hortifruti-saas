@@ -56,8 +56,48 @@ export function CartDrawer({
     if (tipoServico === "retirada") setDeliveryType("pickup")
     else if (tipoServico === "entrega") setDeliveryType("delivery")
   }, [tipoServico])
-  const [address, setAddress] = useState("")
+  
+  // Endereço Estruturado
+  const [cep, setCep] = useState("")
+  const [isCepLoading, setIsCepLoading] = useState(false)
+  const [rua, setRua] = useState("")
+  const [numero, setNumero] = useState("")
+  const [complemento, setComplemento] = useState("")
+  const [bairro, setBairro] = useState("")
+  const [cidade, setCidade] = useState("")
+
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "")
+    
+    // Máscara 00000-000
+    if (value.length > 5) {
+      value = value.substring(0, 5) + "-" + value.substring(5, 8)
+    }
+    
+    setCep(value)
+
+    const cleanCep = value.replace("-", "")
+    if (cleanCep.length === 8) {
+      setIsCepLoading(true)
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+        const data = await response.json()
+        if (!data.erro) {
+          setRua(data.logradouro || "")
+          setBairro(data.bairro || "")
+          setCidade(`${data.localidade || ""} - ${data.uf || ""}`)
+          // Foca no número automaticamente
+          document.getElementById("endereco-numero")?.focus()
+        }
+      } catch (err) {
+        console.error("Erro ao buscar CEP:", err)
+      } finally {
+        setIsCepLoading(false)
+      }
+    }
+  }
 
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -81,10 +121,16 @@ export function CartDrawer({
       alert("Por favor, informe seu nome.")
       return
     }
-    if (deliveryType === "delivery" && !address.trim()) {
-      alert("Por favor, informe seu endereco para entrega.")
-      return
+    
+    let finalAddress = ""
+    if (deliveryType === "delivery") {
+      if (!cep.trim() || !rua.trim() || !numero.trim() || !bairro.trim() || !cidade.trim()) {
+        alert("Por favor, preencha todos os campos obrigatorios do endereco (CEP, Rua, Numero, Bairro e Cidade).")
+        return
+      }
+      finalAddress = `${rua}, ${numero}${complemento ? ` - ${complemento}` : ""} - ${bairro}, ${cidade} - CEP: ${cep}`
     }
+
     if (items.length === 0) {
       alert("Seu carrinho esta vazio.")
       return
@@ -110,7 +156,7 @@ export function CartDrawer({
       // Montamos o pacote separadamente para garantir a leitura
       const payloadDoPedido = {
         cliente_nome: customerName.trim(),
-        cliente_endereco: deliveryType === "delivery" ? address.trim() : null,
+        cliente_endereco: deliveryType === "delivery" ? finalAddress : null,
         tipo_entrega: deliveryType,
         total: total,
         itens: orderItems,
@@ -143,7 +189,7 @@ export function CartDrawer({
       message += `*Cliente:* ${customerName}\n`
       message += `*Tipo:* ${deliveryType === "delivery" ? "Entrega" : "Retirada na Loja"}\n`
       if (deliveryType === "delivery") {
-        message += `*Endereco:* ${address}\n`
+        message += `*Endereco:* ${finalAddress}\n`
       }
 
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
@@ -151,7 +197,12 @@ export function CartDrawer({
 
       if (onClearCart) onClearCart()
       setCustomerName("")
-      setAddress("")
+      setCep("")
+      setRua("")
+      setNumero("")
+      setComplemento("")
+      setBairro("")
+      setCidade("")
       setDeliveryType("delivery")
       onClose()
     } catch (err) {
@@ -272,9 +323,53 @@ export function CartDrawer({
                   </div>
                 )}
                 {deliveryType === "delivery" && (
-                  <div>
-                    <label htmlFor="address" className="block text-xs font-medium text-muted-foreground mb-1.5">Endereco completo</label>
-                    <textarea id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rua, numero, bairro, cidade..." rows={2} className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                  <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div>
+                      <label htmlFor="endereco-cep" className="block text-xs font-medium text-muted-foreground mb-1.5">CEP</label>
+                      <div className="relative">
+                        <input 
+                          id="endereco-cep" 
+                          type="text" 
+                          value={cep} 
+                          onChange={handleCepChange} 
+                          placeholder="00000-000" 
+                          maxLength={9}
+                          className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" 
+                        />
+                        {isCepLoading && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="endereco-rua" className="block text-xs font-medium text-muted-foreground mb-1.5">Rua</label>
+                      <input id="endereco-rua" type="text" value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Sua rua" className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-1">
+                        <label htmlFor="endereco-numero" className="block text-xs font-medium text-muted-foreground mb-1.5">Numero</label>
+                        <input id="endereco-numero" type="text" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="123" className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                      <div className="col-span-2">
+                        <label htmlFor="endereco-complemento" className="block text-xs font-medium text-muted-foreground mb-1.5">Complemento</label>
+                        <input id="endereco-complemento" type="text" value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco, casa..." className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="endereco-bairro" className="block text-xs font-medium text-muted-foreground mb-1.5">Bairro</label>
+                        <input id="endereco-bairro" type="text" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Seu bairro" className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                      <div>
+                        <label htmlFor="endereco-cidade" className="block text-xs font-medium text-muted-foreground mb-1.5">Cidade</label>
+                        <input id="endereco-cidade" type="text" value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Sua cidade" className="w-full px-3 py-2.5 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
