@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Store, LogIn, Video, Zap, TrendingUp, ArrowRight, Link as LinkIcon, History, X } from "lucide-react"
 import { AppFooter } from "@/components/app-footer"
 import { Logo } from "@/components/ui/logo"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const features = [
   { icon: Video, label: "Vídeo ao vivo" },
@@ -102,9 +103,13 @@ export default function Home() {
         className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
         style={{
           background:
-            "linear-gradient(145deg, oklch(0.96 0.04 148) 0%, oklch(0.99 0.01 85) 52%, oklch(0.97 0.025 148) 100%)",
+            "linear-gradient(145deg, var(--background) 0%, oklch(0.99 0.01 85) 52%, var(--background) 100%)",
         }}
       >
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+
         {/* Mesh blobs de fundo */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
@@ -173,29 +178,22 @@ export default function Home() {
 
           {/* Card glassmorphism */}
           <div
-            className="lp-fade-up w-full rounded-2xl p-5 flex flex-col gap-4 text-left"
+            className="lp-fade-up w-full rounded-2xl p-5 flex flex-col gap-4 text-left bg-white/65 dark:bg-card/65 backdrop-blur-md border border-white/60 dark:border-border/50 shadow-sm"
             style={{
               animationDelay: "300ms",
-              background: "oklch(1 0 0 / 0.65)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              border: "1px solid oklch(1 0 0 / 0.60)",
               boxShadow: "0 2px 16px oklch(0.55 0.17 150 / 0.07)",
             }}
           >
             <div className="flex items-center gap-3">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "oklch(0.94 0.03 145)" }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-secondary"
               >
                 <Store
-                  className="w-4 h-4"
-                  style={{ color: "oklch(0.50 0.05 150)" }}
+                  className="w-4 h-4 text-primary"
                 />
               </div>
               <p
-                className="text-sm leading-relaxed"
-                style={{ color: "oklch(0.50 0.02 150)" }}
+                className="text-sm leading-relaxed text-muted-foreground"
               >
                 Procurando uma loja? Solicite o link do catálogo diretamente ao seu lojista.
               </p>
@@ -211,7 +209,7 @@ export default function Home() {
                 placeholder="Já tem o link? Cole aqui..."
                 value={storeLink}
                 onChange={(e) => setStoreLink(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-muted-foreground/60"
+                className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/50 dark:bg-black/20 border border-border/50 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-muted-foreground/60"
               />
               <button
                 type="submit"
@@ -288,27 +286,17 @@ export default function Home() {
             {features.map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl"
-                style={{
-                  background: "oklch(1 0 0 / 0.60)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                  border: "1px solid oklch(1 0 0 / 0.55)",
-                  boxShadow: "0 1px 8px oklch(0.55 0.17 150 / 0.06)",
-                }}
+                className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl bg-white/60 dark:bg-card/60 backdrop-blur-md border border-white/55 dark:border-border/50 shadow-sm"
               >
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: "oklch(0.94 0.03 145)" }}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary"
                 >
                   <Icon
-                    className="w-4 h-4"
-                    style={{ color: "oklch(0.55 0.17 150)" }}
+                    className="w-4 h-4 text-primary"
                   />
                 </div>
                 <span
-                  className="text-[11px] font-semibold leading-tight"
-                  style={{ color: "oklch(0.30 0.06 150)" }}
+                  className="text-[11px] font-semibold leading-tight text-muted-foreground"
                 >
                   {label}
                 </span>
@@ -317,8 +305,16 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Footer com mais respiração e opacidade reduzida */}
-        <div className="mt-10 opacity-50 relative z-10">
+        {/* Footer com estilo premium correspondente ao título */}
+        <div 
+          className="mt-10 relative z-10 font-bold"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.30 0.13 150), oklch(0.55 0.17 150))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
           <AppFooter />
         </div>
       </div>

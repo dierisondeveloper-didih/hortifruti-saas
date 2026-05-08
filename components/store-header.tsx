@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { ShoppingCart, Leaf, Home } from "lucide-react"
 import Link from "next/link"
+import { ThemeToggle } from "./theme-toggle"
 
 interface StoreHeaderProps {
   storeName?: string
@@ -67,6 +68,8 @@ export function StoreHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle primaryColor={primaryColor} />
+          
           <Link
             href="/"
             className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
