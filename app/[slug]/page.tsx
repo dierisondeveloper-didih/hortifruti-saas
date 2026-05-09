@@ -148,7 +148,7 @@ export default function StoreCatalog() {
           .from("produtos")
           .select("*")
           .eq("dono_id", donoId)
-          .order("criado_em", { ascending: false }),
+          .order("created_at", { ascending: false }),
         supabase
           .from("configuracoes")
           .select("*")

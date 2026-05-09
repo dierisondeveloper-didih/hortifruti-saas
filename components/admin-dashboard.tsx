@@ -76,9 +76,9 @@ export function AdminDashboard() {
               .eq("dono_id", donoId),
             supabase
               .from("pedidos")
-              .select("total, status, criado_em")
+              .select("total, status, created_at")
               .eq("dono_id", donoId)
-              .gte("criado_em", cutoff7d),
+              .gte("created_at", cutoff7d),
             supabase
               .from("produtos")
               .select("*", { count: "exact", head: true })
@@ -104,7 +104,7 @@ export function AdminDashboard() {
         })
 
         orders.forEach(order => {
-          const orderDate = new Date(order.criado_em).toISOString().split("T")[0]
+          const orderDate = new Date(order.created_at).toISOString().split("T")[0]
           const dayMatch = last7Days.find(d => d.fullDate === orderDate)
           if (dayMatch) {
             dayMatch.total += order.total || 0

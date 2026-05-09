@@ -84,7 +84,7 @@ export default function AdminPage() {
         .from("produtos")
         .select("*")
         .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
-        .order("criado_em", { ascending: false })
+        .order("created_at", { ascending: false })
 
       if (supaError) {
         throw supaError
