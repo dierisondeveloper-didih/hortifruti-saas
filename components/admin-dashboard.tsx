@@ -11,7 +11,26 @@ import {
   Copy,
   CheckCheck,
   Loader2,
+  TrendingUp,
+  BarChart3,
+  Calendar,
 } from "lucide-react"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from "recharts"
+
+interface SalesData {
+  name: string
+  total: number
+}
 
 interface DashboardData {
   nomeLoja: string
@@ -20,6 +39,8 @@ interface DashboardData {
   totalPedidos: number
   pedidosPendentes: number
   videosDesatualizados: number
+  faturamentoTotal: number
+  chartData: SalesData[]
 }
 
 export function AdminDashboard() {
@@ -37,8 +58,9 @@ export function AdminDashboard() {
 
         const donoId = user.id
         const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-        const [configRes, lojaRes, produtosRes, pedidosTotalRes, pedidosPendentesRes, videosRes] =
+        const [configRes, lojaRes, produtosRes, pedidosRes, videosRes] =
           await Promise.all([
             supabase
               .from("configuracoes")
@@ -54,13 +76,9 @@ export function AdminDashboard() {
               .eq("dono_id", donoId),
             supabase
               .from("pedidos")
-              .select("*", { count: "exact", head: true })
-              .eq("dono_id", donoId),
-            supabase
-              .from("pedidos")
-              .select("*", { count: "exact", head: true })
+              .select("total, status, criado_em")
               .eq("dono_id", donoId)
-              .eq("status", "Pendente"),
+              .gte("criado_em", cutoff7d),
             supabase
               .from("produtos")
               .select("*", { count: "exact", head: true })
@@ -68,13 +86,40 @@ export function AdminDashboard() {
               .or(`ultimo_video_em.is.null,ultimo_video_em.lt.${cutoff24h}`),
           ])
 
+        // Processamento de dados para o gráfico
+        const orders = pedidosRes.data || []
+        const faturamentoTotal = orders.reduce((acc, curr) => acc + (curr.total || 0), 0)
+        const pendentes = orders.filter(o => o.status?.toLowerCase() === "pendente").length
+
+        // Agrupamento por dia (últimos 7 dias)
+        const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+        const last7Days = Array.from({ length: 7 }).map((_, i) => {
+          const date = new Date()
+          date.setDate(date.getDate() - (6 - i))
+          return {
+            name: days[date.getDay()],
+            fullDate: date.toISOString().split("T")[0],
+            total: 0
+          }
+        })
+
+        orders.forEach(order => {
+          const orderDate = new Date(order.criado_em).toISOString().split("T")[0]
+          const dayMatch = last7Days.find(d => d.fullDate === orderDate)
+          if (dayMatch) {
+            dayMatch.total += order.total || 0
+          }
+        })
+
         setData({
           nomeLoja: configRes.data?.nome_loja || "Minha Loja",
           slug: lojaRes.data?.slug || "",
           totalProdutos: produtosRes.count ?? 0,
-          totalPedidos: pedidosTotalRes.count ?? 0,
-          pedidosPendentes: pedidosPendentesRes.count ?? 0,
+          totalPedidos: orders.length,
+          pedidosPendentes: pendentes,
           videosDesatualizados: videosRes.count ?? 0,
+          faturamentoTotal,
+          chartData: last7Days.map(({ name, total }) => ({ name, total }))
         })
       } finally {
         setIsLoading(false)
@@ -96,8 +141,9 @@ export function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-sm text-muted-foreground animate-pulse">Gerando inteligência de negócio...</p>
       </div>
     )
   }
@@ -106,58 +152,145 @@ export function AdminDashboard() {
 
   const metrics = [
     {
-      label: "Produtos cadastrados",
-      value: data.totalProdutos,
-      icon: Package,
+      label: "Faturamento (7d)",
+      value: `R$ ${data.faturamentoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+      icon: TrendingUp,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      label: "Pedidos (7d)",
+      value: data.totalPedidos,
+      icon: ShoppingBag,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
-      label: "Pedidos recebidos",
-      value: data.totalPedidos,
-      icon: ShoppingBag,
-      color: "text-green-500",
-      bg: "bg-green-500/10",
-    },
-    {
-      label: "Pedidos pendentes",
+      label: "Pendentes",
       value: data.pedidosPendentes,
       icon: Clock,
-      color: "text-yellow-500",
-      bg: "bg-yellow-500/10",
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
     },
     {
-      label: "Vídeos desatualizados",
-      value: data.videosDesatualizados,
-      icon: VideoOff,
-      color: "text-red-500",
-      bg: "bg-red-500/10",
+      label: "Produtos",
+      value: data.totalProdutos,
+      icon: Package,
+      color: "text-indigo-500",
+      bg: "bg-indigo-500/10",
     },
   ]
 
   return (
-    <div className="px-4 py-5 space-y-5">
-      {/* Saudação */}
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Olá, {data.nomeLoja}!</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Bem-vindo ao seu painel.</p>
+    <div className="px-4 py-5 space-y-6">
+      {/* Saudação com visual premium */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Olá, {data.nomeLoja.split(" ")[0]}!</h2>
+          <p className="text-sm text-muted-foreground">Aqui está o desempenho da sua loja.</p>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+          <BarChart3 className="w-5 h-5 text-primary" />
+        </div>
       </div>
 
-      {/* Link público da loja */}
-      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Link público da loja
-        </p>
-        <p className="text-sm font-medium text-foreground truncate">{storeUrl}</p>
+      {/* Métricas em Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+          return (
+            <div
+              key={metric.label}
+              className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-4 flex flex-col gap-2 shadow-sm"
+            >
+              <div className={`w-8 h-8 rounded-xl ${metric.bg} flex items-center justify-center`}>
+                <Icon className={`w-4 h-4 ${metric.color}`} />
+              </div>
+              <div>
+                <p className="text-xl font-black text-foreground">{metric.value}</p>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{metric.label}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Gráfico de Vendas Premium */}
+      <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Vendas na Semana</h3>
+          </div>
+          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase">Últimos 7 dias</span>
+        </div>
+        
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.chartData}>
+              <defs>
+                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.50 0.02 150 / 0.1)" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: 'oklch(0.50 0.02 150)' }}
+                dy={10}
+              />
+              <YAxis hide />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'oklch(1 0 0 / 0.8)', 
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: '12px',
+                  border: '1px solid oklch(0.50 0.02 150 / 0.1)',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 12px oklch(0 0 0 / 0.05)'
+                }}
+                itemStyle={{ color: 'var(--primary)' }}
+                labelStyle={{ color: 'oklch(0.20 0.02 150)' }}
+                formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Vendas']}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="total" 
+                stroke="var(--primary)" 
+                strokeWidth={3}
+                fillOpacity={1} 
+                fill="url(#colorTotal)" 
+                animationDuration={1500}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Link público da loja - Reestilizado */}
+      <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-primary uppercase tracking-widest">
+            Sua vitrine online
+          </p>
+          <ExternalLink className="w-4 h-4 text-primary/40" />
+        </div>
+        <div className="bg-background/50 rounded-xl px-4 py-3 border border-primary/5">
+          <p className="text-sm font-mono text-foreground/70 truncate">{storeUrl}</p>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/70 transition-colors active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-card border border-border shadow-sm text-sm font-bold transition-all hover:bg-secondary active:scale-95"
           >
             {copied ? (
               <CheckCheck className="w-4 h-4 text-green-500" />
             ) : (
-              <Copy className="w-4 h-4" />
+              <Copy className="w-4 h-4 text-muted-foreground" />
             )}
             {copied ? "Copiado!" : "Copiar Link"}
           </button>
@@ -165,33 +298,11 @@ export function AdminDashboard() {
             href={storeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-all active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 text-sm font-bold transition-all hover:brightness-110 active:scale-95"
           >
-            <ExternalLink className="w-4 h-4" />
             Acessar Loja
           </a>
         </div>
-      </div>
-
-      {/* Métricas */}
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map((metric) => {
-          const Icon = metric.icon
-          return (
-            <div
-              key={metric.label}
-              className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
-            >
-              <div className={`w-9 h-9 rounded-lg ${metric.bg} flex items-center justify-center`}>
-                <Icon className={`w-5 h-5 ${metric.color}`} />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{metric.value}</p>
-                <p className="text-xs text-muted-foreground leading-tight mt-0.5">{metric.label}</p>
-              </div>
-            </div>
-          )
-        })}
       </div>
     </div>
   )
