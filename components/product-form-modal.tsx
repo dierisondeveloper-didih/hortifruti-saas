@@ -2,13 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { X, Package, ImagePlus, Loader2, Upload, Camera } from "lucide-react"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase"
 import { Switch } from "@/components/ui/switch"
-
-// Conectando com o seu banco Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export interface ProductFormData {
   id?: string
@@ -17,7 +12,9 @@ export interface ProductFormData {
   unidade: string
   estoque: number
   categoria: string
-  imagem_url?: string // Nova coluna adicionada aqui!
+  imagem_url?: string
+  em_oferta?: boolean
+  preco_oferta?: number
 }
 
 export interface CategoryOption {

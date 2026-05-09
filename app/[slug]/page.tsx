@@ -148,12 +148,11 @@ export default function StoreCatalog() {
           .from("produtos")
           .select("*")
           .eq("dono_id", donoId)
-          .order("created_at", { ascending: false }),
+          .order("criado_em", { ascending: false }),
         supabase
           .from("configuracoes")
           .select("*")
           .eq("dono_id", donoId)
-          .order("id", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase

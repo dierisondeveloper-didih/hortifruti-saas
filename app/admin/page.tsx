@@ -84,7 +84,7 @@ export default function AdminPage() {
         .from("produtos")
         .select("*")
         .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
-        .order("created_at", { ascending: false })
+        .order("criado_em", { ascending: false })
 
       if (supaError) {
         throw supaError
@@ -376,7 +376,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {activeTab !== "dashboard" && !isLoading && error && (
+      {activeTab !== "dashboard" && !isLoading && error && (activeTab === "products" || activeTab === "videos") && (
         <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
           <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center">
             <WifiOff className="w-6 h-6 text-destructive" />
@@ -395,7 +395,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {activeTab !== "dashboard" && !isLoading && !error && (
+      {activeTab !== "dashboard" && !isLoading && (!error || (activeTab !== "products" && activeTab !== "videos")) && (
         <>
           {activeTab === "videos" && (
             <>
