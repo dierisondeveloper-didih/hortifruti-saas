@@ -8,11 +8,11 @@ export function AppFooter({ primaryColor }: AppFooterProps) {
       <p>
         {"© 2026 "}
         <span style={primaryColor ? { color: primaryColor } : undefined}>
-          Vertyx Tureta e Santos SA
+          Vertyx Tureta e Santos LTDA
         </span>
         {". Todos os direitos reservados."}
       </p>
-      <p className="mt-0.5">Desenvolvido por Dierison Silva</p>
+      <p className="mt-0.5">Desenvolvido por Dierison Santos</p>
     </footer>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import {
   Loader2,
   Package,
@@ -109,8 +110,8 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
           tipo_entrega: row.tipo_entrega === "pickup" ? "pickup" : "delivery",
           total: Number(row.total ?? 0),
           itens: Array.isArray(row.itens) ? row.itens : [],
-          status: ["pendente", "concluido", "cancelado"].includes(row.status)
-            ? row.status
+          status: ["pendente", "concluido", "cancelado"].includes(row.status?.toLowerCase())
+            ? row.status.toLowerCase()
             : "pendente",
           created_at: String(row.created_at ?? ""),
         }))
@@ -197,15 +198,15 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
         .eq("dono_id", authUser?.id) // TRAVA DE SEGURANÇA
 
       if (error) {
-        alert("Erro ao atualizar status: " + error.message)
+        toast.error("Erro ao atualizar status: " + error.message)
       } else {
         // Show success message with stock info
         if (shouldDeductStock) {
-          alert("Status atualizado e estoque baixado!")
+          toast.success("Status atualizado e estoque baixado!")
         } else if (shouldRestoreStock) {
-          alert("Status atualizado e estoque estornado!")
+          toast.success("Status atualizado e estoque estornado!")
         } else {
-          alert("Status atualizado com sucesso!")
+          toast.success("Status atualizado com sucesso!")
         }
         await fetchOrders()
 
@@ -215,7 +216,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
         }
       }
     } catch (err) {
-      alert(
+      toast.error(
         "Erro inesperado: " +
           (err instanceof Error ? err.message : String(err))
       )
@@ -225,6 +226,8 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   }
 
   const handleDeleteOrder = async (orderId: string) => {
+    // Mantendo window.confirm apenas para exclusão por segurança extra, 
+    // mas trocando o feedback final para toast
     const confirmed = window.confirm("Tem certeza que deseja excluir este pedido?")
     if (!confirmed) return
 
@@ -241,12 +244,13 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
         .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
       if (error) {
-        alert("Erro ao excluir pedido: " + error.message)
+        toast.error("Erro ao excluir pedido: " + error.message)
       } else {
+        toast.success("Pedido excluído com sucesso!")
         await fetchOrders()
       }
     } catch (err) {
-      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+      toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
     } finally {
       setDeletingOrder(null)
     }

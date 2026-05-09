@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import type { Product } from "./product-card"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 
 export interface CartItem {
   product: Product
@@ -118,27 +119,27 @@ export function CartDrawer({
 
   const handleWhatsAppCheckout = async () => {
     if (!customerName.trim()) {
-      alert("Por favor, informe seu nome.")
+      toast.error("Por favor, informe seu nome.")
       return
     }
     
     let finalAddress = ""
     if (deliveryType === "delivery") {
       if (!cep.trim() || !rua.trim() || !numero.trim() || !bairro.trim() || !cidade.trim()) {
-        alert("Por favor, preencha todos os campos obrigatorios do endereco (CEP, Rua, Numero, Bairro e Cidade).")
+        toast.error("Preencha todos os campos obrigatórios do endereço.")
         return
       }
       finalAddress = `${rua}, ${numero}${complemento ? ` - ${complemento}` : ""} - ${bairro}, ${cidade} - CEP: ${cep}`
     }
 
     if (items.length === 0) {
-      alert("Seu carrinho esta vazio.")
+      toast.error("Seu carrinho está vazio.")
       return
     }
 
     // A NOSSA TRAVA DE SEGURANÇA:
     if (!donoId) {
-      alert("ERRO CRÍTICO: O sistema perdeu a conexão com a loja (donoId vazio). Atualize a página e tente novamente!")
+      toast.error("Erro de conexão com a loja. Recarregue a página.")
       return
     }
 
@@ -164,12 +165,10 @@ export function CartDrawer({
         dono_id: donoId, 
       }
 
-      console.log("Pacote enviado para o Supabase:", payloadDoPedido)
-
       const { error: insertError } = await supabase.from("pedidos").insert([payloadDoPedido])
 
       if (insertError) {
-        alert("Erro ao salvar pedido: " + insertError.message)
+        toast.error("Erro ao salvar pedido: " + insertError.message)
         setIsSubmitting(false)
         return
       }
@@ -180,7 +179,7 @@ export function CartDrawer({
         return `${item.quantity}x ${item.product.name} (R$ ${formatPrice(lineTotal)})`
       }).join("\n")
 
-      let message = `Ola! Gostaria de fazer um pedido:\n\n${itemsText}\n\n`
+      let message = `Olá! Gostaria de fazer um pedido:\n\n${itemsText}\n\n`
       message += `*Subtotal:* R$ ${formatPrice(subtotal)}\n`
       if (deliveryType === "delivery" && deliveryFee > 0) {
         message += `*Taxa de Entrega:* R$ ${formatPrice(deliveryFee)}\n`
@@ -189,13 +188,14 @@ export function CartDrawer({
       message += `*Cliente:* ${customerName}\n`
       message += `*Tipo:* ${deliveryType === "delivery" ? "Entrega" : "Retirada na Loja"}\n`
       if (deliveryType === "delivery") {
-        message += `*Endereco:* ${finalAddress}\n`
+        message += `*Endereço:* ${finalAddress}\n`
       }
 
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
       window.open(whatsappUrl, "_blank")
 
       if (onClearCart) onClearCart()
+      toast.success("Pedido enviado com sucesso!")
       setCustomerName("")
       setCep("")
       setRua("")
@@ -206,7 +206,7 @@ export function CartDrawer({
       setDeliveryType("delivery")
       onClose()
     } catch (err) {
-      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+      toast.error("Erro inesperado ao processar pedido.")
     } finally {
       setIsSubmitting(false)
     }

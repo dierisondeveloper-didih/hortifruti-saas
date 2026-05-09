@@ -66,8 +66,17 @@ export default function StoreCatalog() {
   const [categories, setCategories] = useState<CategoryFilter[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
+  
+  // Debounce da busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchInput])
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [fullscreenVideo, setFullscreenVideo] = useState<{ url: string; name: string } | null>(null)
@@ -106,7 +115,7 @@ export default function StoreCatalog() {
       // Pequeno delay artificial para evitar flicker e permitir visualização do Skeleton localmente
       await new Promise(resolve => setTimeout(resolve, 600))
 
-      // 1. Acha a Loja
+      // 1. Acha a Loja (ESSENCIAL - depende apenas do slug)
       const { data: lojaData, error: lojaError } = await supabase
         .from("lojas")
         .select("*")
@@ -118,26 +127,35 @@ export default function StoreCatalog() {
       const donoId = lojaData.dono_id
       setStoreDonoId(donoId)
 
-      // 2. Busca Produtos
-      const { data: productsData } = await supabase
-        .from("produtos")
-        .select("*")
-        .eq("dono_id", donoId)
-        .order("criado_em", { ascending: false })
+      // 2, 3 e 4. Busca Dados em PARALELO (todos dependem do donoId)
+      const [productsRes, configRes, categoriesRes] = await Promise.all([
+        supabase
+          .from("produtos")
+          .select("*")
+          .eq("dono_id", donoId)
+          .order("criado_em", { ascending: false }),
+        supabase
+          .from("configuracoes")
+          .select("*")
+          .eq("dono_id", donoId)
+          .order("id", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("categorias")
+          .select("*")
+          .eq("dono_id", donoId)
+          .order("nome", { ascending: true })
+      ])
 
-      if (productsData) {
-        setProducts(productsData.map(mapRowToProduct))
+      // Processa Produtos
+      if (productsRes.data) {
+        setProducts(productsRes.data.map(mapRowToProduct))
       }
 
-      // 3. Busca Configurações (Pegando sempre a ÚLTIMA salva no banco para evitar duplicidades antigas)
-      const { data: configArray, error: configError } = await supabase
-        .from("configuracoes")
-        .select("*")
-        .eq("dono_id", donoId)
-        
-      if (!configError && configArray && configArray.length > 0) {
-        const settingsData = configArray[configArray.length - 1]
-
+      // Processa Configurações
+      const settingsData = configRes.data
+      if (settingsData) {
         setSettings({
           nome_loja: settingsData?.nome_loja || lojaData.name,
           telefone_whatsapp: String(settingsData?.telefone_whatsapp ?? "5511999999999"),
@@ -148,15 +166,9 @@ export default function StoreCatalog() {
         })
       }
 
-      // 4. Busca Categorias
-      const { data: categoriesData } = await supabase
-        .from("categorias")
-        .select("*")
-        .eq("dono_id", donoId)
-        .order("nome", { ascending: true })
-
-      if (categoriesData) {
-        setCategories(categoriesData.map((row) => ({ id: String(row.id), nome: String(row.nome ?? "") })))
+      // Processa Categorias
+      if (categoriesRes.data) {
+        setCategories(categoriesRes.data.map((row) => ({ id: String(row.id), nome: String(row.nome ?? "") })))
       }
     } catch (err: any) {
       setError(err.message || "Erro ao carregar o catálogo")
@@ -246,8 +258,8 @@ export default function StoreCatalog() {
       />
 
       <SearchAndFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        searchQuery={searchInput}
+        onSearchChange={setSearchInput}
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
         categories={categories}
