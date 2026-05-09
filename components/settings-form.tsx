@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react"
+import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload, Lock, Eye, EyeOff, CheckCircle2, Clock } from "lucide-react"
 import Image from "next/image"
+
+import { toast } from "sonner"
 
 export type TipoServico = "entrega" | "retirada" | "ambos"
 
@@ -15,6 +17,8 @@ export interface StoreSettings {
   logo_url?: string
   cor_primaria?: string
   tipo_servico?: TipoServico
+  horario_abertura?: string
+  horario_fechamento?: string
 }
 
 interface SettingsFormProps {
@@ -33,6 +37,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [taxaEntrega, setTaxaEntrega] = useState("")
   const [tipoServico, setTipoServico] = useState<TipoServico>("ambos")
   const [corPrimaria, setCorPrimaria] = useState("#2d8a4e")
+  const [horarioAbertura, setHorarioAbertura] = useState("08:00")
+  const [horarioFechamento, setHorarioFechamento] = useState("20:00")
   const [logoUrl, setLogoUrl] = useState("")
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -89,6 +95,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         setTaxaEntrega(String(data.taxa_entrega ?? "0"))
         setTipoServico((data.tipo_servico as TipoServico) ?? "ambos")
         setCorPrimaria(String(data.cor_primaria ?? "#2d8a4e"))
+        setHorarioAbertura(String(data.horario_abertura ?? "08:00"))
+        setHorarioFechamento(String(data.horario_fechamento ?? "20:00"))
         setLogoUrl(String(data.logo_url ?? ""))
       }
     } catch (err) {
@@ -114,7 +122,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
     
     const phoneClean = telefoneWhatsapp.replace(/\D/g, "")
     if (phoneClean.length < 10) {
-      alert("O numero do WhatsApp deve ter pelo menos 10 digitos (com DDD).")
+      toast.error("O número do WhatsApp deve ter pelo menos 10 dígitos.")
       return
     }
 
@@ -123,79 +131,57 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) {
-        throw new Error("Não foi possível identificar o usuário logado para salvar as configurações.")
+        throw new Error("Usuário não identificado.")
       }
 
       let uploadedLogoUrl = logoUrl
 
       if (logoFile) {
         const timestamp = Date.now()
-        const fileExt = logoFile.name.split(".").pop()
-        const fileName = `logo_${timestamp}.${fileExt}`
+        const fileName = `logo_${timestamp}.${logoFile.name.split(".").pop()}`
 
         const { error: uploadError } = await supabase.storage
           .from("logos_lojas")
-          .upload(fileName, logoFile, {
-            contentType: logoFile.type,
-            upsert: true,
-          })
+          .upload(fileName, logoFile, { upsert: true })
 
         if (uploadError) {
-          alert("Erro no upload da logo: " + uploadError.message)
+          toast.error("Erro no upload da logo.")
           setIsSaving(false)
           return
         }
 
-        const { data: urlData } = supabase.storage
-          .from("logos_lojas")
-          .getPublicUrl(fileName)
-
-        if (urlData?.publicUrl) {
-          uploadedLogoUrl = urlData.publicUrl
-        }
+        const { data: urlData } = supabase.storage.from("logos_lojas").getPublicUrl(fileName)
+        uploadedLogoUrl = urlData.publicUrl
       }
 
-      const payload: any = {
+      const payload = {
         nome_loja: nomeLoja.trim(),
         telefone_whatsapp: phoneClean,
         taxa_entrega: tipoServico === "retirada" ? 0 : (parseFloat(taxaEntrega) || 0),
         tipo_servico: tipoServico,
         cor_primaria: corPrimaria,
+        horario_abertura: horarioAbertura,
+        horario_fechamento: horarioFechamento,
         logo_url: uploadedLogoUrl || null,
         dono_id: user.id
       }
 
-      if (settings?.id) {
-        const { error: updateError } = await supabase
-          .from("configuracoes")
-          .update(payload)
-          .eq("id", settings.id)
+      const { error: supaError } = settings?.id 
+        ? await supabase.from("configuracoes").update(payload).eq("id", settings.id)
+        : await supabase.from("configuracoes").insert(payload)
 
-        if (updateError) {
-          alert("Erro ao atualizar configuracoes: " + updateError.message)
-          setIsSaving(false)
-          return
-        }
+      if (supaError) {
+        toast.error("Erro ao salvar configurações.")
       } else {
-        const { error: insertError } = await supabase
-          .from("configuracoes")
-          .insert(payload)
-
-        if (insertError) {
-          alert("Erro ao criar configuracoes: " + insertError.message)
-          setIsSaving(false)
-          return
-        }
+        toast.success("Configurações salvas!")
+        await fetchSettings()
+        onSave?.()
       }
-
-      alert("Configuracoes salvas com sucesso!")
-      await fetchSettings()
-      onSave?.()
-    } catch (err) {
-      alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+    } catch (err: any) {
+      toast.error(err.message || "Erro inesperado.")
+    } finally {
+      setIsSaving(false)
     }
-
-    setIsSaving(false)
   }
 
   const handleChangePassword = async () => {
@@ -374,6 +360,38 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
             </p>
           </div>
         )}
+
+        <div className="border-t border-border pt-5 mt-5">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
+            <Clock className="w-4 h-4 text-primary" />
+            Horário de Funcionamento
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="opening-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Abertura</label>
+              <input
+                id="opening-hour"
+                type="time"
+                value={horarioAbertura}
+                onChange={(e) => setHorarioAbertura(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label htmlFor="closing-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Fechamento</label>
+              <input
+                id="closing-hour"
+                type="time"
+                value={horarioFechamento}
+                onChange={(e) => setHorarioFechamento(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            O catálogo avisará os clientes se a loja estiver fora do horário.
+          </p>
+        </div>
 
         <div className="border-t border-border pt-5 mt-5">
           <h3 className="text-sm font-semibold text-foreground mb-4">

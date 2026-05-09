@@ -8,7 +8,7 @@ import { ProductGrid } from "@/components/product-grid"
 import { ProductCard, type Product } from "@/components/product-card"
 import { OfferCard } from "@/components/offer-card"
 import { supabase } from "@/lib/supabase"
-import { Loader2, WifiOff, RefreshCw, Store, Tag } from "lucide-react"
+import { Loader2, WifiOff, RefreshCw, Store, Tag, Clock, AlertCircle } from "lucide-react"
 import { getProductImage, formatFreshTimestamp } from "@/lib/product-utils"
 import { FullScreenVideoPlayer } from "@/components/fullscreen-video-player"
 import { CartDrawer, type CartItem } from "@/components/cart-drawer"
@@ -106,6 +106,21 @@ export default function StoreCatalog() {
 
   const cartCount = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
 
+  const isStoreOpen = useMemo(() => {
+    if (!settings?.horario_abertura || !settings?.horario_fechamento) return true
+    
+    const now = new Date()
+    const currentTime = now.getHours() * 60 + now.getMinutes()
+    
+    const [openH, openM] = settings.horario_abertura.split(":").map(Number)
+    const [closeH, closeM] = settings.horario_fechamento.split(":").map(Number)
+    
+    const openTime = openH * 60 + openM
+    const closeTime = closeH * 60 + closeM
+    
+    return currentTime >= openTime && currentTime <= closeTime
+  }, [settings])
+
   const fetchData = async () => {
     if (!slug) return
     setIsLoading(true)
@@ -163,6 +178,8 @@ export default function StoreCatalog() {
           logo_url: settingsData?.logo_url ? String(settingsData?.logo_url) : undefined,
           cor_primaria: settingsData?.cor_primaria ? String(settingsData?.cor_primaria) : undefined,
           tipo_servico: (settingsData?.tipo_servico as "entrega" | "retirada" | "ambos") ?? "ambos",
+          horario_abertura: settingsData?.horario_abertura,
+          horario_fechamento: settingsData?.horario_fechamento,
         })
       }
 
@@ -248,6 +265,16 @@ export default function StoreCatalog() {
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto pb-20">
       
+      {!isLoading && !isStoreOpen && settings?.horario_abertura && (
+        <div className="bg-orange-500/10 border-b border-orange-500/20 px-4 py-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <Clock className="w-4 h-4 text-orange-600 shrink-0" />
+          <p className="text-[11px] font-medium text-orange-700 leading-tight">
+            Loja fechada no momento. Abre às {settings.horario_abertura}. 
+            Você pode montar seu carrinho, mas a finalização está pausada.
+          </p>
+        </div>
+      )}
+
       <StoreHeader
         storeName={settings?.nome_loja || "Carregando..."}
         userName="Cliente"
@@ -383,6 +410,7 @@ export default function StoreCatalog() {
           primaryColor={settings?.cor_primaria}
           tipoServico={settings?.tipo_servico ?? "ambos"}
           donoId={storeDonoId}
+          isStoreOpen={isStoreOpen}
         />
       )}
     </div>

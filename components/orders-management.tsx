@@ -123,6 +123,34 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
 
   useEffect(() => {
     fetchOrders()
+
+    // Configura Real-time para novos pedidos
+    const channel = supabase
+      .channel("pedidos_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "pedidos",
+        },
+        async (payload) => {
+          // Só notifica se for para este lojista
+          const { data: { user } } = await supabase.auth.getUser()
+          if (payload.new.dono_id === user?.id) {
+            toast.success("🛒 Novo pedido recebido!", {
+              description: `Pedido de ${payload.new.cliente_nome}`,
+              duration: 10000,
+            })
+            fetchOrders()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchOrders])
 
   const handleStatusChange = async (

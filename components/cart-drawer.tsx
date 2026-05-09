@@ -11,6 +11,7 @@ import {
   Truck,
   Store,
   MessageCircle,
+  AlertCircle,
 } from "lucide-react"
 import type { Product } from "./product-card"
 import { supabase } from "@/lib/supabase"
@@ -47,6 +48,7 @@ export function CartDrawer({
   primaryColor,
   tipoServico = "ambos",
   donoId,
+  isStoreOpen = true,
 }: CartDrawerProps) {
   const [customerName, setCustomerName] = useState("")
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
@@ -57,6 +59,25 @@ export function CartDrawer({
     if (tipoServico === "retirada") setDeliveryType("pickup")
     else if (tipoServico === "entrega") setDeliveryType("delivery")
   }, [tipoServico])
+  
+  // Carrega dados do LocalStorage ao montar
+  useEffect(() => {
+    const savedName = localStorage.getItem("hortifruti_customer_name")
+    const savedAddress = localStorage.getItem("hortifruti_customer_address")
+    
+    if (savedName) setCustomerName(savedName)
+    if (savedAddress) {
+      try {
+        const addr = JSON.parse(savedAddress)
+        setCep(addr.cep || "")
+        setRua(addr.rua || "")
+        setNumero(addr.numero || "")
+        setComplemento(addr.complemento || "")
+        setBairro(addr.bairro || "")
+        setCidade(addr.cidade || "")
+      } catch (e) {}
+    }
+  }, [])
   
   // Endereço Estruturado
   const [cep, setCep] = useState("")
@@ -193,6 +214,14 @@ export function CartDrawer({
 
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
       window.open(whatsappUrl, "_blank")
+
+      // Salva dados no LocalStorage para compras futuras
+      localStorage.setItem("hortifruti_customer_name", customerName.trim())
+      if (deliveryType === "delivery") {
+        localStorage.setItem("hortifruti_customer_address", JSON.stringify({
+          cep, rua, numero, complemento, bairro, cidade
+        }))
+      }
 
       if (onClearCart) onClearCart()
       toast.success("Pedido enviado com sucesso!")
@@ -378,8 +407,20 @@ export function CartDrawer({
         </div>
 
         {items.length > 0 && (
-          <div className="p-4 border-t border-border bg-card">
-            <button onClick={handleWhatsAppCheckout} disabled={isSubmitting} className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-[#25D366] text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-70">
+          <div className="p-4 border-t border-border bg-card space-y-3">
+            {!isStoreOpen && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-700">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-medium leading-tight">
+                  A loja está fechada no momento. Você pode montar seu carrinho, mas a finalização via WhatsApp está desativada até o horário de abertura.
+                </p>
+              </div>
+            )}
+            <button 
+              onClick={handleWhatsAppCheckout} 
+              disabled={isSubmitting || !isStoreOpen} 
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-[#25D366] text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+            >
               <MessageCircle className="w-5 h-5" />
               Finalizar Pedido no WhatsApp
             </button>
