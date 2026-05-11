@@ -43,7 +43,16 @@ interface LojaData {
   pedido_count: number
 }
 
-type Tab = "lojas" | "novo"
+interface LeadData {
+  id: string
+  nome_responsavel: string
+  nome_loja: string
+  telefone_whatsapp: string
+  status: "pendente" | "contatado" | "aprovado" | "recusado"
+  criado_em: string
+}
+
+type Tab = "lojas" | "leads" | "novo"
 
 type Feedback = { type: "success" | "error"; text: string } | null
 
@@ -70,6 +79,12 @@ export default function SuperAdminPage() {
   const [lojas, setLojas] = useState<LojaData[]>([])
   const [isLoadingLojas, setIsLoadingLojas] = useState(false)
   const [lojasFeedback, setLojasFeedback] = useState<Feedback>(null)
+
+  // Leads
+  const [leads, setLeads] = useState<LeadData[]>([])
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false)
+  const [leadsFeedback, setLeadsFeedback] = useState<Feedback>(null)
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null)
 
   // Ações por loja
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -150,9 +165,68 @@ export default function SuperAdminPage() {
     }
   }, [])
 
+  const fetchLeads = useCallback(async () => {
+    setIsLoadingLeads(true)
+    setLeadsFeedback(null)
+
+    try {
+      const authHeader = await getAuthHeader()
+      const res = await fetch("/api/super-admin/leads", {
+        headers: { Authorization: authHeader },
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || "Erro ao carregar leads")
+      setLeads(data.leads)
+    } catch (err: any) {
+      setLeadsFeedback({ type: "error", text: err.message })
+    } finally {
+      setIsLoadingLeads(false)
+    }
+  }, [])
+
   useEffect(() => {
-    if (isAuthorized) fetchLojas()
-  }, [isAuthorized, fetchLojas])
+    if (isAuthorized) {
+      fetchLojas()
+      fetchLeads()
+    }
+  }, [isAuthorized, fetchLojas, fetchLeads])
+
+  // ── Atualiza status do Lead ────────────────────────────────────────────────
+  async function handleUpdateLeadStatus(leadId: string, status: "pendente" | "contatado" | "aprovado" | "recusado") {
+    setUpdatingLeadId(leadId)
+    setLeadsFeedback(null)
+
+    try {
+      const authHeader = await getAuthHeader()
+      const res = await fetch("/api/super-admin/leads", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({ leadId, status }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      setLeadsFeedback({ type: "success", text: `Status do lead atualizado para ${status}.` })
+      await fetchLeads()
+    } catch (err: any) {
+      setLeadsFeedback({ type: "error", text: err.message })
+    } finally {
+      setUpdatingLeadId(null)
+    }
+  }
+
+  // ── Aprovar Lead (preenche formulário) ──────────────────────────────────
+  function handleAprovarLead(lead: LeadData) {
+    setFormData({
+      ...formData,
+      nomeLoja: lead.nome_loja,
+      // Gera um slug sugerido básico
+      slug: lead.nome_loja.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    })
+    handleUpdateLeadStatus(lead.id, "aprovado")
+    setActiveTab("novo")
+  }
 
   // ── Toggle ativo/inativo ──────────────────────────────────────────────────
 
@@ -341,8 +415,19 @@ export default function SuperAdminPage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Users className="w-4 h-4" />
+            <Building2 className="w-4 h-4" />
             Lojistas
+          </button>
+          <button
+            onClick={() => setActiveTab("leads")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "leads"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Leads
           </button>
           <button
             onClick={() => setActiveTab("novo")}
@@ -559,6 +644,137 @@ export default function SuperAdminPage() {
                               Confirmar exclusão
                             </button>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB: LEADS ──────────────────────────────────────────────── */}
+        {activeTab === "leads" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                {leads.length} lead{leads.length !== 1 ? "s" : ""}
+              </p>
+              <button
+                onClick={fetchLeads}
+                disabled={isLoadingLeads}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/70 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLeads ? "animate-spin" : ""}`} />
+                Atualizar
+              </button>
+            </div>
+
+            {leadsFeedback && (
+              <div
+                className={`flex items-start gap-3 p-4 rounded-xl text-sm font-medium ${
+                  leadsFeedback.type === "success"
+                    ? "bg-green-500/10 text-green-600"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {leadsFeedback.type === "success" ? (
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                )}
+                <span>{leadsFeedback.text}</span>
+              </div>
+            )}
+
+            {isLoadingLeads && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                <p className="text-sm text-muted-foreground">Carregando leads...</p>
+              </div>
+            )}
+
+            {!isLoadingLeads && leads.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Users className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Nenhum lead encontrado</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Os contatos solicitados pela landing page aparecerão aqui.
+                </p>
+              </div>
+            )}
+
+            {!isLoadingLeads && leads.length > 0 && (
+              <div className="space-y-3">
+                {leads.map((lead) => {
+                  const isUpdating = updatingLeadId === lead.id
+                  
+                  return (
+                    <div
+                      key={lead.id}
+                      className="bg-card border border-border rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {lead.nome_loja}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {lead.nome_responsavel} • {lead.telefone_whatsapp}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                            lead.status === "pendente"
+                              ? "bg-yellow-500/10 text-yellow-600"
+                              : lead.status === "contatado"
+                              ? "bg-blue-500/10 text-blue-600"
+                              : lead.status === "aprovado"
+                              ? "bg-green-500/10 text-green-600"
+                              : "bg-red-500/10 text-red-500"
+                          }`}
+                        >
+                          {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                        </span>
+                      </div>
+                      
+                      <p className="text-[10px] text-muted-foreground/70">
+                        Recebido em: {new Date(lead.criado_em).toLocaleString("pt-BR")}
+                      </p>
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-border">
+                        {/* Ações baseadas no status */}
+                        {lead.status === "pendente" && (
+                          <button
+                            onClick={() => handleUpdateLeadStatus(lead.id, "contatado")}
+                            disabled={isUpdating}
+                            className="flex-1 py-2 text-xs font-medium rounded-xl bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-all disabled:opacity-50"
+                          >
+                            Marcar como Contatado
+                          </button>
+                        )}
+
+                        {(lead.status === "pendente" || lead.status === "contatado") && (
+                          <button
+                            onClick={() => handleAprovarLead(lead)}
+                            disabled={isUpdating}
+                            className="flex-1 py-2 text-xs font-medium rounded-xl bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-all disabled:opacity-50"
+                          >
+                            Aprovar e Criar Loja
+                          </button>
+                        )}
+                        
+                        {(lead.status === "pendente" || lead.status === "contatado") && (
+                          <button
+                            onClick={() => handleUpdateLeadStatus(lead.id, "recusado")}
+                            disabled={isUpdating}
+                            className="px-3 py-2 text-xs font-medium rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all disabled:opacity-50"
+                          >
+                            Recusar
+                          </button>
                         )}
                       </div>
                     </div>

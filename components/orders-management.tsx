@@ -160,64 +160,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
     setUpdatingStatus(orderId)
 
     try {
-      // Find the order to get current status and items
-      const order = orders.find((o) => o.id === orderId)
-      if (!order) {
-        alert("Pedido nao encontrado")
-        setUpdatingStatus(null)
-        return
-      }
-
-      const oldStatus = order.status
-      const items = order.itens
-
-      // Determine if we need to adjust stock
-      // Deduct stock: when changing TO "concluido" from non-concluido
-      // Restore stock: when changing FROM "concluido" to non-concluido
-      const shouldDeductStock = newStatus === "concluido" && oldStatus !== "concluido"
-      const shouldRestoreStock = oldStatus === "concluido" && newStatus !== "concluido"
-
-      // Process stock adjustments
-      if (shouldDeductStock || shouldRestoreStock) {
-        for (const item of items) {
-          // Get current stock
-          const { data: productData, error: fetchError } = await supabase
-            .from("produtos")
-            .select("estoque")
-            .eq("id", item.product_id)
-            .single()
-
-          if (fetchError) {
-            console.error(`Erro ao buscar estoque do produto ${item.product_id}:`, fetchError)
-            continue // Skip this item but continue with others
-          }
-
-          const currentStock = Number(productData?.estoque ?? 0)
-          let newStock: number
-
-          if (shouldDeductStock) {
-            // Deduct stock (baixa)
-            newStock = Math.max(0, currentStock - item.quantity)
-          } else {
-            // Restore stock (estorno)
-            newStock = currentStock + item.quantity
-          }
-
-          // Update stock in database
-          const { data: { user: currentUser } } = await supabase.auth.getUser()
-          const { error: updateError } = await supabase
-            .from("produtos")
-            .update({ estoque: newStock })
-            .eq("id", item.product_id)
-            .eq("dono_id", currentUser?.id) // TRAVA DE SEGURANÇA
-
-          if (updateError) {
-            console.error(`Erro ao atualizar estoque do produto ${item.product_id}:`, updateError)
-          }
-        }
-      }
-
-      // Update order status
+      // Update order status - Stock is now handled by DB trigger!
       const { data: { user: authUser } } = await supabase.auth.getUser()
       const { error } = await supabase
         .from("pedidos")
@@ -228,18 +171,11 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
       if (error) {
         toast.error("Erro ao atualizar status: " + error.message)
       } else {
-        // Show success message with stock info
-        if (shouldDeductStock) {
-          toast.success("Status atualizado e estoque baixado!")
-        } else if (shouldRestoreStock) {
-          toast.success("Status atualizado e estoque estornado!")
-        } else {
-          toast.success("Status atualizado com sucesso!")
-        }
+        toast.success(`Status atualizado para ${newStatus}!`)
         await fetchOrders()
 
         // Notify parent to refresh products list (for stock reactivity)
-        if (onStockChange && (shouldDeductStock || shouldRestoreStock)) {
+        if (onStockChange) {
           onStockChange()
         }
       }
