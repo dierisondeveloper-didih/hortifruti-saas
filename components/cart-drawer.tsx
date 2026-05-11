@@ -184,6 +184,7 @@ export function CartDrawer({
         itens: orderItems,
         status: "pendente",
         dono_id: donoId, 
+        forma_pagamento: paymentMethod,
       }
 
       const { error: insertError } = await supabase.from("pedidos").insert([payloadDoPedido])
@@ -208,6 +209,7 @@ export function CartDrawer({
       message += `*Total: R$ ${formatPrice(total)}*\n\n`
       message += `*Cliente:* ${customerName}\n`
       message += `*Tipo:* ${deliveryType === "delivery" ? "Entrega" : "Retirada na Loja"}\n`
+      message += `*Pagamento:* ${paymentMethod === "pix" ? "Pix" : paymentMethod === "cartao" ? "Cartão (Máquina)" : "Dinheiro"}\n`
       if (deliveryType === "delivery") {
         message += `*Endereço:* ${finalAddress}\n`
       }
@@ -401,6 +403,61 @@ export function CartDrawer({
                     </div>
                   </div>
                 )}
+
+                <div className="pt-2 border-t border-border mt-4">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Forma de Pagamento</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setPaymentMethod("pix")} 
+                      className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border text-[11px] font-medium transition-all ${paymentMethod === "pix" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} 
+                      style={{ backgroundColor: paymentMethod === "pix" ? primaryColor || undefined : undefined, color: paymentMethod === "pix" && primaryColor ? "#fff" : undefined, borderColor: paymentMethod === "pix" ? primaryColor || undefined : undefined }}
+                    >
+                      <QrCode className="w-4 h-4" /> Pix
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setPaymentMethod("cartao")} 
+                      className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border text-[11px] font-medium transition-all ${paymentMethod === "cartao" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} 
+                      style={{ backgroundColor: paymentMethod === "cartao" ? primaryColor || undefined : undefined, color: paymentMethod === "cartao" && primaryColor ? "#fff" : undefined, borderColor: paymentMethod === "cartao" ? primaryColor || undefined : undefined }}
+                    >
+                      <CreditCard className="w-4 h-4" /> Cartão
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setPaymentMethod("dinheiro")} 
+                      className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border text-[11px] font-medium transition-all ${paymentMethod === "dinheiro" ? "border-transparent" : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"}`} 
+                      style={{ backgroundColor: paymentMethod === "dinheiro" ? primaryColor || undefined : undefined, color: paymentMethod === "dinheiro" && primaryColor ? "#fff" : undefined, borderColor: paymentMethod === "dinheiro" ? primaryColor || undefined : undefined }}
+                    >
+                      <Banknote className="w-4 h-4" /> Dinheiro
+                    </button>
+                  </div>
+                  
+                  {paymentMethod === "pix" && chavePix && (
+                    <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-xl animate-in fade-in slide-in-from-top-2">
+                      <p className="text-xs text-muted-foreground mb-1.5 font-medium">Chave Pix da loja:</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 bg-background px-3 py-2 rounded-lg text-sm font-semibold text-foreground border border-border truncate" title={chavePix}>
+                          {chavePix}
+                        </code>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(chavePix)
+                            toast.success("Chave Pix copiada!")
+                          }}
+                          className="flex items-center justify-center w-10 h-10 text-white rounded-lg transition-colors hover:brightness-110 active:scale-95 shrink-0"
+                          style={{ backgroundColor: primaryColor || "#2d8a4e" }}
+                          aria-label="Copiar chave pix"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-2">Dica: Você pode copiar a chave agora para agilizar o pagamento no app do seu banco e enviar o comprovante via WhatsApp.</p>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}

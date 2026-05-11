@@ -103,13 +103,30 @@ export function AdminDashboard() {
           }
         })
 
+        const topProductsMap = new Map<string, { quantity: number; revenue: number }>()
+
         orders.forEach(order => {
           const orderDate = new Date(order.created_at).toISOString().split("T")[0]
           const dayMatch = last7Days.find(d => d.fullDate === orderDate)
           if (dayMatch) {
             dayMatch.total += order.total || 0
           }
+
+          if (order.itens && Array.isArray(order.itens)) {
+            order.itens.forEach((item: any) => {
+              const current = topProductsMap.get(item.product_name) || { quantity: 0, revenue: 0 }
+              topProductsMap.set(item.product_name, {
+                quantity: current.quantity + item.quantity,
+                revenue: current.revenue + (item.quantity * item.unit_price)
+              })
+            })
+          }
         })
+
+        const topProducts = Array.from(topProductsMap.entries())
+          .map(([name, pdata]) => ({ name, ...pdata }))
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5)
 
         setData({
           nomeLoja: configRes.data?.nome_loja || "Minha Loja",
@@ -119,7 +136,8 @@ export function AdminDashboard() {
           pedidosPendentes: pendentes,
           videosDesatualizados: videosRes.count ?? 0,
           faturamentoTotal,
-          chartData: last7Days.map(({ name, total }) => ({ name, total }))
+          chartData: last7Days.map(({ name, total }) => ({ name, total })),
+          topProducts
         })
       } finally {
         setIsLoading(false)
@@ -268,6 +286,32 @@ export function AdminDashboard() {
               />
             </AreaChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Top Produtos */}
+      <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold text-foreground">Top 5 Produtos (7d)</h3>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {data.topProducts.map((p, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-foreground line-clamp-1">{p.name}</span>
+                <span className="text-xs text-muted-foreground">{p.quantity} vendidos</span>
+              </div>
+              <span className="text-sm font-bold text-primary">
+                R$ {p.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          ))}
+          {data.topProducts.length === 0 && (
+            <p className="text-sm text-center text-muted-foreground py-4">Nenhum dado de venda na semana.</p>
+          )}
         </div>
       </div>
 

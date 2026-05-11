@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload, Lock, Eye, EyeOff, CheckCircle2, Clock } from "lucide-react"
+import { Save, Store, Phone, Truck, Loader2, Palette, ImageIcon, Upload, Lock, Eye, EyeOff, CheckCircle2, Clock, QrCode } from "lucide-react"
 import Image from "next/image"
 
 import { toast } from "sonner"
@@ -14,6 +14,7 @@ export interface StoreSettings {
   nome_loja: string
   telefone_whatsapp: string
   taxa_entrega: number
+  chave_pix?: string
   logo_url?: string
   cor_primaria?: string
   tipo_servico?: TipoServico
@@ -35,6 +36,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [nomeLoja, setNomeLoja] = useState("")
   const [telefoneWhatsapp, setTelefoneWhatsapp] = useState("")
   const [taxaEntrega, setTaxaEntrega] = useState("")
+  const [chavePix, setChavePix] = useState("")
   const [tipoServico, setTipoServico] = useState<TipoServico>("ambos")
   const [corPrimaria, setCorPrimaria] = useState("#2d8a4e")
   const [horarioAbertura, setHorarioAbertura] = useState("08:00")
@@ -360,6 +362,27 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
             </p>
           </div>
         )}
+
+        <div>
+          <label
+            htmlFor="pix-key"
+            className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+          >
+            <QrCode className="w-4 h-4 text-primary" />
+            Chave Pix (Opcional)
+          </label>
+          <input
+            id="pix-key"
+            type="text"
+            value={chavePix}
+            onChange={(e) => setChavePix(e.target.value)}
+            placeholder="Ex: seuemail@email.com, telefone ou CPF/CNPJ"
+            className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Se preenchida, os clientes poderão copiar esta chave no carrinho antes de enviar o pedido pelo WhatsApp.
+          </p>
+        </div>
 
         <div className="border-t border-border pt-5 mt-5">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">

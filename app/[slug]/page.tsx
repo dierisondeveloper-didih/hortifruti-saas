@@ -175,6 +175,7 @@ export default function StoreCatalog() {
           nome_loja: settingsData?.nome_loja || lojaData.name,
           telefone_whatsapp: String(settingsData?.telefone_whatsapp ?? "5511999999999"),
           taxa_entrega: Number(settingsData?.taxa_entrega ?? 0),
+          chave_pix: settingsData?.chave_pix ? String(settingsData?.chave_pix) : undefined,
           logo_url: settingsData?.logo_url ? String(settingsData?.logo_url) : undefined,
           cor_primaria: settingsData?.cor_primaria ? String(settingsData?.cor_primaria) : undefined,
           tipo_servico: (settingsData?.tipo_servico as "entrega" | "retirada" | "ambos") ?? "ambos",

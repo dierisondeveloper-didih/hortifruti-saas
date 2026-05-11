@@ -444,7 +444,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
                         </button>
                       )}
                       <button
-                        onClick={() => handleDeleteOrder(order.id)}
+                        onClick={() => setDeleteConfirm(order.id)}
                         disabled={deletingOrder === order.id}
                         className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50"
                         title="Excluir pedido"
