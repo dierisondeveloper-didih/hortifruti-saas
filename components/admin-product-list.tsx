@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { Video, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react"
 
@@ -54,6 +55,15 @@ export function AdminProductList({
   onRecordClick,
   onDeleteVideo,
 }: AdminProductListProps) {
+  const [deleteConfirm, setDeleteConfirm] = useState<AdminProduct | null>(null)
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirm) {
+      onDeleteVideo(deleteConfirm)
+      setDeleteConfirm(null)
+    }
+  }
+
   return (
     <div className="px-4 pb-6">
       <h2 className="text-sm font-semibold text-foreground mb-3">
@@ -114,7 +124,7 @@ export function AdminProductList({
               <div className="flex items-center gap-2 shrink-0">
                 {product.videoUrl && (
                   <button
-                    onClick={() => onDeleteVideo(product)}
+                    onClick={() => setDeleteConfirm(product)}
                     className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50 text-red-600 border border-red-200 transition-all hover:bg-red-100 active:scale-95"
                     aria-label={`Excluir video de ${product.name}`}
                   >
@@ -134,6 +144,49 @@ export function AdminProductList({
           )
         })}
       </ul>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeleteConfirm(null)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative w-full max-w-sm bg-card rounded-2xl border border-border shadow-2xl p-5 animate-in zoom-in-95 fade-in duration-200"
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Excluir vídeo?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  O vídeo de "{deleteConfirm.name}" será removido.
+                </p>
+              </div>
+              <div className="flex gap-3 w-full pt-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold transition-all hover:brightness-110 active:scale-95"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

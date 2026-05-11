@@ -17,6 +17,7 @@ import { CategoryManagement } from "@/components/category-management"
 import { OrdersManagement } from "@/components/orders-management"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { AppFooter } from "@/components/app-footer"
+import { toast } from "sonner"
 
 function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
   const name = String(row.nome ?? "")

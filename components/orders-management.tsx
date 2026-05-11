@@ -71,6 +71,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const fetchOrders = useCallback(async () => {
     setIsLoading(true)
@@ -462,6 +463,49 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
           )
         })}
       </div>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeleteConfirm(null)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative w-full max-w-sm bg-card rounded-2xl border border-border shadow-2xl p-5 animate-in zoom-in-95 fade-in duration-200"
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Excluir pedido?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Esta ação não pode ser desfeita. O pedido será removido do sistema.
+                </p>
+              </div>
+              <div className="flex gap-3 w-full pt-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteOrder}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold transition-all hover:brightness-110 active:scale-95"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { PwaRegister } from '@/components/pwa-register'
 
 const _inter = Inter({ subsets: ['latin'] })
 
@@ -38,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="font-sans antialiased">
+        <PwaRegister />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

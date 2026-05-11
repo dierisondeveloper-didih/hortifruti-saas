@@ -112,11 +112,11 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
 
   const handleSave = async () => {
     if (!nomeLoja.trim()) {
-      alert("Por favor, informe o nome da loja.")
+      toast.error("Por favor, informe o nome da loja.")
       return
     }
     if (!telefoneWhatsapp.trim()) {
-      alert("Por favor, informe o numero do WhatsApp.")
+      toast.error("Por favor, informe o numero do WhatsApp.")
       return
     }
     

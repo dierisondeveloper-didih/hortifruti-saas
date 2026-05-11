@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { Plus, Trash2, Loader2, Tag, FolderOpen } from "lucide-react"
+import { toast } from "sonner"
 
 export interface Category {
   id: string
@@ -198,7 +199,7 @@ export function CategoryManagement() {
                 </span>
               </div>
               <button
-                onClick={() => handleDeleteCategory(category.id, category.nome)}
+                onClick={() => setDeleteConfirm({ id: category.id, nome: category.nome })}
                 className="flex items-center justify-center w-8 h-8 rounded-lg bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 active:scale-95"
                 aria-label={`Excluir categoria ${category.nome}`}
               >
@@ -206,6 +207,49 @@ export function CategoryManagement() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setDeleteConfirm(null)}
+            aria-hidden="true"
+          />
+          <div
+            className="relative w-full max-w-sm bg-card rounded-2xl border border-border shadow-2xl p-5 animate-in zoom-in-95 fade-in duration-200"
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  Excluir categoria?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  A categoria "{deleteConfirm.nome}" será removida.
+                </p>
+              </div>
+              <div className="flex gap-3 w-full pt-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium transition-colors hover:bg-secondary/70 active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteCategory}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold transition-all hover:brightness-110 active:scale-95"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

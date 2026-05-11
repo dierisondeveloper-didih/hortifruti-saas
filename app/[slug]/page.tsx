@@ -45,6 +45,7 @@ function mapRowToProduct(row: Record<string, unknown>): Product {
     isOffer: Boolean(row.em_oferta),
     offerPrice: row.preco_oferta ? Number(row.preco_oferta) : undefined,
     videoUrl: row.video_url ? String(row.video_url) : undefined,
+    stock: Number(row.estoque ?? 0),
   }
 }
 

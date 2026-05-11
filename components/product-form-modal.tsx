@@ -108,7 +108,7 @@ export function ProductFormModal({
 
     } catch (error) {
       console.error("Erro ao fazer upload da imagem:", error)
-      alert("Erro ao enviar a imagem. Tente novamente.")
+      toast.error("Erro ao enviar a imagem. Tente novamente.")
     } finally {
       setIsUploading(false)
     }
