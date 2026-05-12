@@ -53,9 +53,12 @@ interface StoreSettings {
   nome_loja: string
   telefone_whatsapp: string
   taxa_entrega: number
+  chave_pix?: string
   logo_url?: string
   cor_primaria?: string
   tipo_servico?: "entrega" | "retirada" | "ambos"
+  horario_abertura?: string
+  horario_fechamento?: string
 }
 
 export default function StoreCatalog() {
@@ -406,13 +409,16 @@ export default function StoreCatalog() {
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}
-          deliveryFee={settings?.taxa_entrega ?? 0}
+          deliveryFee={settings?.taxa_entrega}
           whatsappNumber={settings?.telefone_whatsapp || "5511999999999"}
           primaryColor={settings?.cor_primaria}
           tipoServico={settings?.tipo_servico ?? "ambos"}
           donoId={storeDonoId}
           isStoreOpen={isStoreOpen}
+          storeName={settings?.nome_loja}
+          chavePix={settings?.chave_pix}
         />
+
       )}
     </div>
   )

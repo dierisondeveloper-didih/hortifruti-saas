@@ -12,6 +12,10 @@ import {
   Store,
   MessageCircle,
   AlertCircle,
+  QrCode,
+  CreditCard,
+  Banknote,
+  Copy,
 } from "lucide-react"
 import type { Product } from "./product-card"
 import { supabase } from "@/lib/supabase"
@@ -34,6 +38,9 @@ interface CartDrawerProps {
   primaryColor?: string
   tipoServico?: "entrega" | "retirada" | "ambos"
   donoId?: string
+  isStoreOpen?: boolean
+  storeName?: string
+  chavePix?: string
 }
 
 export function CartDrawer({
@@ -49,8 +56,11 @@ export function CartDrawer({
   tipoServico = "ambos",
   donoId,
   isStoreOpen = true,
+  storeName = "Loja",
+  chavePix,
 }: CartDrawerProps) {
   const [customerName, setCustomerName] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "dinheiro">("dinheiro")
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
     tipoServico === "retirada" ? "pickup" : "delivery"
   )
@@ -198,21 +208,29 @@ export function CartDrawer({
       const itemsText = items.map((item) => {
         const price = item.product.isOffer && item.product.offerPrice ? item.product.offerPrice : item.product.price
         const lineTotal = price * item.quantity
-        return `${item.quantity}x ${item.product.name} (R$ ${formatPrice(lineTotal)})`
+        return `✅ *${item.quantity}x* ${item.product.name} (R$ ${formatPrice(lineTotal)})`
       }).join("\n")
 
-      let message = `Olá! Gostaria de fazer um pedido:\n\n${itemsText}\n\n`
+      let message = `📦 *NOVO PEDIDO - ${storeName.toUpperCase()}*\n`
+      message += `--------------------------------\n\n`
+      message += `🛒 *ITENS DO PEDIDO:*\n${itemsText}\n\n`
+      message += `--------------------------------\n`
       message += `*Subtotal:* R$ ${formatPrice(subtotal)}\n`
       if (deliveryType === "delivery" && deliveryFee > 0) {
         message += `*Taxa de Entrega:* R$ ${formatPrice(deliveryFee)}\n`
       }
-      message += `*Total: R$ ${formatPrice(total)}*\n\n`
-      message += `*Cliente:* ${customerName}\n`
-      message += `*Tipo:* ${deliveryType === "delivery" ? "Entrega" : "Retirada na Loja"}\n`
-      message += `*Pagamento:* ${paymentMethod === "pix" ? "Pix" : paymentMethod === "cartao" ? "Cartão (Máquina)" : "Dinheiro"}\n`
+      message += `💰 *TOTAL: R$ ${formatPrice(total)}*\n\n`
+      message += `--------------------------------\n`
+      message += `👤 *CLIENTE:* ${customerName}\n`
+      message += `📍 *FORMA DE RECEBIMENTO:* ${deliveryType === "delivery" ? "🚀 Entrega" : "🏪 Retirada na Loja"}\n`
+      message += `💳 *PAGAMENTO:* ${paymentMethod === "pix" ? "💠 Pix" : paymentMethod === "cartao" ? "💳 Cartão (Máquina)" : "💵 Dinheiro"}\n`
+      
       if (deliveryType === "delivery") {
-        message += `*Endereço:* ${finalAddress}\n`
+        message += `\n🏠 *ENDEREÇO DE ENTREGA:*\n${finalAddress}\n`
       }
+      
+      message += `\n--------------------------------\n`
+      message += `*Pedido enviado via Hortifruti App*`
 
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
       window.open(whatsappUrl, "_blank")

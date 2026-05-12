@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { X, Package, ImagePlus, Loader2, Upload, Camera } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 
 export interface ProductFormData {
   id?: string

@@ -147,6 +147,8 @@ export default function AdminPage() {
           estoque: data.estoque,
           categoria: data.categoria,
           imagem_url: data.imagem_url || null,
+          em_oferta: data.em_oferta || false,
+          preco_oferta: data.preco_oferta || 0,
           dono_id: user.id // TRAVA DE SEGURANÇA
         })
 

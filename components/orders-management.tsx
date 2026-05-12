@@ -190,13 +190,12 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
     }
   }
 
-  const handleDeleteOrder = async (orderId: string) => {
-    // Mantendo window.confirm apenas para exclusão por segurança extra, 
-    // mas trocando o feedback final para toast
-    const confirmed = window.confirm("Tem certeza que deseja excluir este pedido?")
-    if (!confirmed) return
+  const handleDeleteOrder = async () => {
+    if (!deleteConfirm) return
+    const orderId = deleteConfirm
 
     setDeletingOrder(orderId)
+    setDeleteConfirm(null)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -220,6 +219,7 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
       setDeletingOrder(null)
     }
   }
+
 
   const formatPrice = (value: number) =>
     value.toLocaleString("pt-BR", {

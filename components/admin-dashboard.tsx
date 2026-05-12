@@ -32,6 +32,12 @@ interface SalesData {
   total: number
 }
 
+interface TopProduct {
+  name: string
+  quantity: number
+  revenue: number
+}
+
 interface DashboardData {
   nomeLoja: string
   slug: string
@@ -41,6 +47,7 @@ interface DashboardData {
   videosDesatualizados: number
   faturamentoTotal: number
   chartData: SalesData[]
+  topProducts: TopProduct[]
 }
 
 export function AdminDashboard() {
@@ -76,7 +83,7 @@ export function AdminDashboard() {
               .eq("dono_id", donoId),
             supabase
               .from("pedidos")
-              .select("total, status, created_at")
+              .select("total, status, created_at, itens")
               .eq("dono_id", donoId)
               .gte("created_at", cutoff7d),
             supabase

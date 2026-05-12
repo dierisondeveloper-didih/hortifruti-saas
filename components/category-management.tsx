@@ -15,6 +15,7 @@ export function CategoryManagement() {
   const [isLoading, setIsLoading] = useState(true)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [isAdding, setIsAdding] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, nome: string } | null>(null)
 
   const fetchCategories = useCallback(async () => {
     setIsLoading(true)
@@ -82,11 +83,8 @@ export function CategoryManagement() {
     }
   }
 
-  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    const confirmed = window.confirm(
-      `Tem certeza que deseja excluir a categoria "${categoryName}"?`
-    )
-    if (!confirmed) return
+  const handleDeleteCategory = async () => {
+    if (!deleteConfirm) return
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -95,12 +93,13 @@ export function CategoryManagement() {
       const { error } = await supabase
         .from("categorias")
         .delete()
-        .eq("id", categoryId)
+        .eq("id", deleteConfirm.id)
         .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
       if (error) {
         alert("Erro ao excluir categoria: " + error.message)
       } else {
+        setDeleteConfirm(null)
         await fetchCategories()
       }
     } catch (err) {

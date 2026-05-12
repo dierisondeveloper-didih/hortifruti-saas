@@ -19,6 +19,8 @@ export interface ManagedProduct {
   stock: number
   category: string
   image: string
+  isOffer?: boolean
+  offerPrice?: number
 }
 
 interface ProductManagementProps {
