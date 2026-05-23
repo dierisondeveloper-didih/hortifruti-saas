@@ -299,12 +299,14 @@ export default function AdminPage() {
         }
 
         const timestamp = Date.now()
-        const fileName = `${productId}_${timestamp}.webm`
+        const mimeType = videoBlob.type || "video/webm"
+        const ext = mimeType.split("/")[1]?.split(";")[0] ?? "webm"
+        const fileName = `${productId}_${timestamp}.${ext}`
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("videos_produtos")
           .upload(fileName, videoBlob, {
-            contentType: "video/webm",
+            contentType: mimeType,
             upsert: true,
           })
 

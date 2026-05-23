@@ -67,6 +67,16 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [downloadingQR, setDownloadingQR] = useState(false)
   const [isDark, setIsDark] = useState(false)
   const shareRef = useRef<HTMLDivElement>(null)
+  const [hasShared, setHasShared] = useState(false)
+
+  useEffect(() => {
+    setHasShared(localStorage.getItem("loja_compartilhada") === "true")
+  }, [])
+
+  const markAsShared = () => {
+    localStorage.setItem("loja_compartilhada", "true")
+    setHasShared(true)
+  }
 
   useEffect(() => {
     const check = () => setIsDark(document.documentElement.classList.contains("dark"))
@@ -188,6 +198,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(storeUrl)
     setCopied(true)
+    markAsShared()
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -231,7 +242,8 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const hasProducts = data.produtosDoLojista > 0
   const hasVideos = data.totalProdutos > 0 && data.videosDesatualizados < data.totalProdutos
   const hasOrders = data.totalPedidos > 0
-  const allDone = hasProducts && hasVideos && hasOrders
+  const hasSharedStore = hasShared || hasOrders
+  const allDone = hasProducts && hasVideos && hasSharedStore
   const showOnboarding = !allDone
 
   const onboardingSteps = [
@@ -250,7 +262,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       target: "videos" as const,
     },
     {
-      done: hasOrders,
+      done: hasSharedStore,
       title: "Compartilhe sua loja",
       desc: "Envie seu link pelo WhatsApp e receba pedidos.",
       icon: ExternalLink,
@@ -501,6 +513,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             href={`https://wa.me/?text=${encodeURIComponent(`Confira nossa loja online: ${storeUrl}`)}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={markAsShared}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#25D366] text-white shadow-sm text-sm font-bold transition-all hover:brightness-110 active:scale-95"
           >
             <Share2 className="w-4 h-4" />

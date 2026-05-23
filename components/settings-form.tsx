@@ -41,6 +41,9 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [corPrimaria, setCorPrimaria] = useState("#2d8a4e")
   const [horarioAbertura, setHorarioAbertura] = useState("08:00")
   const [horarioFechamento, setHorarioFechamento] = useState("20:00")
+  const [mensagemRodape, setMensagemRodape] = useState("")
+  const [valorMinimo, setValorMinimo] = useState("0")
+  const [diasFuncionamento, setDiasFuncionamento] = useState<number[]>([1, 2, 3, 4, 5])
   const [logoUrl, setLogoUrl] = useState("")
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -84,6 +87,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           setNomeLoja("Hortifruti Online")
           setTelefoneWhatsapp("")
           setTaxaEntrega("5.00")
+          setValorMinimo("0")
+          setDiasFuncionamento([1, 2, 3, 4, 5])
           setTipoServico("ambos")
           setCorPrimaria("#2d8a4e")
           setLogoUrl("")
@@ -95,10 +100,19 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         setNomeLoja(String(data.nome_loja ?? ""))
         setTelefoneWhatsapp(String(data.telefone_whatsapp ?? ""))
         setTaxaEntrega(String(data.taxa_entrega ?? "0"))
+        setValorMinimo(String(data.valor_minimo_entrega ?? "0"))
+        setChavePix(String(data.chave_pix ?? ""))
         setTipoServico((data.tipo_servico as TipoServico) ?? "ambos")
+        setDiasFuncionamento(
+          String(data.dias_funcionamento ?? "1,2,3,4,5")
+            .split(",")
+            .map(Number)
+            .filter((n) => n >= 0 && n <= 6)
+        )
         setCorPrimaria(String(data.cor_primaria ?? "#2d8a4e"))
         setHorarioAbertura(String(data.horario_abertura ?? "08:00"))
         setHorarioFechamento(String(data.horario_fechamento ?? "20:00"))
+        setMensagemRodape(String(data.mensagem_rodape ?? ""))
         setLogoUrl(String(data.logo_url ?? ""))
       }
     } catch (err) {
@@ -160,10 +174,14 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         nome_loja: nomeLoja.trim(),
         telefone_whatsapp: phoneClean,
         taxa_entrega: tipoServico === "retirada" ? 0 : (parseFloat(taxaEntrega) || 0),
+        valor_minimo_entrega: tipoServico === "retirada" ? 0 : (parseFloat(valorMinimo) || 0),
+        chave_pix: chavePix.trim() || null,
         tipo_servico: tipoServico,
+        dias_funcionamento: diasFuncionamento.sort((a, b) => a - b).join(","),
         cor_primaria: corPrimaria,
         horario_abertura: horarioAbertura,
         horario_fechamento: horarioFechamento,
+        mensagem_rodape: mensagemRodape.trim() || null,
         logo_url: uploadedLogoUrl || null,
         dono_id: user.id
       }
@@ -339,28 +357,53 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         </div>
 
         {tipoServico !== "retirada" && (
-          <div>
-            <label
-              htmlFor="delivery-fee"
-              className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-            >
-              <Truck className="w-4 h-4 text-primary" />
-              Taxa de Entrega (R$)
-            </label>
-            <input
-              id="delivery-fee"
-              type="number"
-              step="0.01"
-              min="0"
-              value={taxaEntrega}
-              onChange={(e) => setTaxaEntrega(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Valor cobrado para entregas. Use 0 para entrega gratis.
-            </p>
-          </div>
+          <>
+            <div>
+              <label
+                htmlFor="delivery-fee"
+                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+              >
+                <Truck className="w-4 h-4 text-primary" />
+                Taxa de Entrega (R$)
+              </label>
+              <input
+                id="delivery-fee"
+                type="number"
+                step="0.01"
+                min="0"
+                value={taxaEntrega}
+                onChange={(e) => setTaxaEntrega(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Valor cobrado para entregas. Use 0 para entrega gratis.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="valor-minimo"
+                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+              >
+                <Truck className="w-4 h-4 text-primary" />
+                Pedido Mínimo para Entrega (R$)
+              </label>
+              <input
+                id="valor-minimo"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorMinimo}
+                onChange={(e) => setValorMinimo(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Valor mínimo do pedido para aceitar entrega. Use 0 para sem mínimo.
+              </p>
+            </div>
+          </>
         )}
 
         <div>
@@ -409,6 +452,43 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
                 onChange={(e) => setHorarioFechamento(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-muted-foreground mb-2">
+              Dias de Funcionamento
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { dia: 0, label: "Dom" },
+                  { dia: 1, label: "Seg" },
+                  { dia: 2, label: "Ter" },
+                  { dia: 3, label: "Qua" },
+                  { dia: 4, label: "Qui" },
+                  { dia: 5, label: "Sex" },
+                  { dia: 6, label: "Sáb" },
+                ] as { dia: number; label: string }[]
+              ).map(({ dia, label }) => (
+                <button
+                  key={dia}
+                  type="button"
+                  onClick={() =>
+                    setDiasFuncionamento((prev) =>
+                      prev.includes(dia)
+                        ? prev.filter((d) => d !== dia)
+                        : [...prev, dia].sort((a, b) => a - b)
+                    )
+                  }
+                  className={`px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+                    diasFuncionamento.includes(dia)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary text-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
@@ -512,6 +592,31 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           <p className="text-xs text-muted-foreground mt-2">
             Recomendado: PNG ou SVG com fundo transparente, 200x200px.
           </p>
+        </div>
+
+        <div className="border-t border-border pt-5 mt-5">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Rodapé da Loja</h3>
+          <div>
+            <label
+              htmlFor="mensagem-rodape"
+              className="block text-sm font-medium text-foreground mb-2"
+            >
+              Mensagem de Rodapé (Opcional)
+            </label>
+            <textarea
+              id="mensagem-rodape"
+              rows={3}
+              value={mensagemRodape}
+              onChange={(e) => setMensagemRodape(e.target.value)}
+              placeholder="Ex: Entregamos de segunda a sábado das 8h às 18h. Produtos frescos direto do produtor!"
+              className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              maxLength={200}
+            />
+            <p className="text-xs text-muted-foreground mt-1.5 flex justify-between">
+              <span>Aparece no rodapé da página do catálogo.</span>
+              <span>{mensagemRodape.length}/200</span>
+            </p>
+          </div>
         </div>
 
         <button

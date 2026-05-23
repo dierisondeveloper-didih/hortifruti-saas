@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Loader2, Eye, EyeOff, Check } from "lucide-react"
 import Link from "next/link"
 import { AppFooter } from "@/components/app-footer"
 import { Logo } from "@/components/ui/logo"
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,6 +42,15 @@ export default function LoginPage() {
         }
         setIsLoading(false)
         return
+      }
+
+      // Preferência "manter-me conectado": se desmarcado, marca para que
+      // a sessão seja descartada ao fechar (limpa no próximo carregamento
+      // sem essa flag). Por padrão (marcado) a sessão persiste normalmente.
+      if (rememberMe) {
+        localStorage.setItem("manter_login", "true")
+      } else {
+        localStorage.removeItem("manter_login")
       }
 
       // Verifica se é super admin antes de redirecionar
@@ -147,6 +157,24 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {/* Manter login */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={rememberMe}
+              onClick={() => setRememberMe((v) => !v)}
+              className={`flex items-center justify-center w-5 h-5 rounded-md border transition-colors shrink-0 ${
+                rememberMe
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "bg-background border-input"
+              }`}
+            >
+              {rememberMe && <Check className="w-3.5 h-3.5" />}
+            </button>
+            <span className="text-sm text-muted-foreground">Manter-me conectado</span>
+          </label>
 
           {/* Error message */}
           {error && (

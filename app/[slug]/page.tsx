@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { StoreHeader } from "@/components/store-header"
 import { SearchAndFilters, type CategoryFilter } from "@/components/search-and-filters"
@@ -14,6 +14,7 @@ import { FullScreenVideoPlayer } from "@/components/fullscreen-video-player"
 import { CartDrawer, type CartItem } from "@/components/cart-drawer"
 import { ProductDetailsModal } from "@/components/product-details-modal"
 import { AppFooter } from "@/components/app-footer"
+import { useModalHistory } from "@/hooks/useModalHistory"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
@@ -54,12 +55,15 @@ interface StoreSettings {
   nome_loja: string
   telefone_whatsapp: string
   taxa_entrega: number
+  valor_minimo_entrega?: number
   chave_pix?: string
   logo_url?: string
   cor_primaria?: string
   tipo_servico?: "entrega" | "retirada" | "ambos"
   horario_abertura?: string
   horario_fechamento?: string
+  dias_funcionamento?: string
+  mensagem_rodape?: string
 }
 
 export default function StoreCatalog() {
@@ -113,17 +117,20 @@ export default function StoreCatalog() {
 
   const isStoreOpen = useMemo(() => {
     if (!settings?.horario_abertura || !settings?.horario_fechamento) return true
-    
+
     const now = new Date()
+
+    // Verifica dia da semana (0=dom … 6=sáb) — só quando configurado
+    if (settings.dias_funcionamento) {
+      const diasAtivos = settings.dias_funcionamento.split(",").map(Number)
+      if (!diasAtivos.includes(now.getDay())) return false
+    }
+
     const currentTime = now.getHours() * 60 + now.getMinutes()
-    
     const [openH, openM] = settings.horario_abertura.split(":").map(Number)
     const [closeH, closeM] = settings.horario_fechamento.split(":").map(Number)
-    
-    const openTime = openH * 60 + openM
-    const closeTime = closeH * 60 + closeM
-    
-    return currentTime >= openTime && currentTime <= closeTime
+
+    return currentTime >= openH * 60 + openM && currentTime <= closeH * 60 + closeM
   }, [settings])
 
   const fetchData = async () => {
@@ -179,12 +186,15 @@ export default function StoreCatalog() {
           nome_loja: settingsData?.nome_loja || lojaData.name,
           telefone_whatsapp: String(settingsData?.telefone_whatsapp ?? "5511999999999"),
           taxa_entrega: Number(settingsData?.taxa_entrega ?? 0),
+          valor_minimo_entrega: Number(settingsData?.valor_minimo_entrega ?? 0),
           chave_pix: settingsData?.chave_pix ? String(settingsData?.chave_pix) : undefined,
           logo_url: settingsData?.logo_url ? String(settingsData?.logo_url) : undefined,
           cor_primaria: settingsData?.cor_primaria ? String(settingsData?.cor_primaria) : undefined,
           tipo_servico: (settingsData?.tipo_servico as "entrega" | "retirada" | "ambos") ?? "ambos",
           horario_abertura: settingsData?.horario_abertura,
           horario_fechamento: settingsData?.horario_fechamento,
+          dias_funcionamento: settingsData?.dias_funcionamento ? String(settingsData.dias_funcionamento) : undefined,
+          mensagem_rodape: settingsData?.mensagem_rodape ? String(settingsData.mensagem_rodape) : undefined,
         })
       }
 
@@ -249,9 +259,15 @@ export default function StoreCatalog() {
 
   const handleClearCart = () => setCartItems([])
   const handleVideoClick = (videoUrl: string, productName: string) => setFullscreenVideo({ url: videoUrl, name: productName })
-  const handleCloseVideo = () => setFullscreenVideo(null)
+  const handleCloseVideo = useCallback(() => setFullscreenVideo(null), [])
   const handleDetailsClick = (product: Product) => setDetailsProduct(product)
-  const handleCloseDetails = () => setDetailsProduct(null)
+  const handleCloseDetails = useCallback(() => setDetailsProduct(null), [])
+  const handleCloseCart = useCallback(() => setIsCartOpen(false), [])
+
+  // Botão Voltar do celular fecha os modais em vez de navegar
+  useModalHistory(!!fullscreenVideo, handleCloseVideo, "video")
+  useModalHistory(!!detailsProduct, handleCloseDetails, "produto")
+  useModalHistory(isCartOpen, handleCloseCart, "carrinho")
 
   if (!isLoading && error === "Loja não encontrada") {
     return (
@@ -270,15 +286,21 @@ export default function StoreCatalog() {
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto pb-20">
       
-      {!isLoading && !isStoreOpen && settings?.horario_abertura && (
-        <div className="bg-orange-500/10 border-b border-orange-500/20 px-4 py-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-          <Clock className="w-4 h-4 text-orange-600 shrink-0" />
-          <p className="text-[11px] font-medium text-orange-700 leading-tight">
-            Loja fechada no momento. Abre às {settings.horario_abertura}. 
-            Você pode montar seu carrinho, mas a finalização está pausada.
-          </p>
-        </div>
-      )}
+      {!isLoading && !isStoreOpen && settings?.horario_abertura && (() => {
+        const diasAtivos = settings.dias_funcionamento?.split(",").map(Number) ?? null
+        const hoje = new Date().getDay()
+        const diaFechado = diasAtivos !== null && !diasAtivos.includes(hoje)
+        return (
+          <div className="bg-orange-500/10 border-b border-orange-500/20 px-4 py-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+            <Clock className="w-4 h-4 text-orange-600 shrink-0" />
+            <p className="text-[11px] font-medium text-orange-700 leading-tight">
+              {diaFechado
+                ? "Loja fechada hoje. Você pode montar seu carrinho, mas a finalização está pausada."
+                : `Loja fechada no momento. Abre às ${settings.horario_abertura}. Você pode montar seu carrinho, mas a finalização está pausada.`}
+            </p>
+          </div>
+        )
+      })()}
 
       <StoreHeader
         storeName={settings?.nome_loja || "Carregando..."}
@@ -400,12 +422,12 @@ export default function StoreCatalog() {
       )}
       <ProductDetailsModal product={detailsProduct} isOpen={!!detailsProduct} onClose={handleCloseDetails} onAddToCart={handleAddToCart} primaryColor={settings?.cor_primaria} />
       
-      <AppFooter primaryColor={settings?.cor_primaria} />
+      <AppFooter primaryColor={settings?.cor_primaria} mensagemRodape={settings?.mensagem_rodape} />
 
       {storeDonoId && (
         <CartDrawer
           isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
+          onClose={handleCloseCart}
           items={cartItems}
           onUpdateQuantity={handleUpdateQuantity}
           onRemoveItem={handleRemoveItem}
@@ -418,6 +440,7 @@ export default function StoreCatalog() {
           isStoreOpen={isStoreOpen}
           storeName={settings?.nome_loja}
           chavePix={settings?.chave_pix}
+          valorMinimoEntrega={settings?.valor_minimo_entrega}
         />
 
       )}

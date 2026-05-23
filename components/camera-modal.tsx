@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { X, SwitchCamera, Zap, Loader2, Upload } from "lucide-react"
+import { X, SwitchCamera, Zap, Loader2, Upload, FolderOpen } from "lucide-react"
 import type { AdminProduct } from "@/components/admin-product-list"
+import { toast } from "sonner"
 
 const MAX_RECORDING_SECONDS = 15
 
@@ -20,6 +21,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment")
   const [isStopping, setIsStopping] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [supportsZoom, setSupportsZoom] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(1)
   const [zoomMin, setZoomMin] = useState(1)
@@ -34,6 +36,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const zoomTrackRef = useRef<MediaStreamTrack | null>(null)
+  const uploadInputRef = useRef<HTMLInputElement>(null)
 
   // Start camera when modal opens
   useEffect(() => {
@@ -55,8 +58,8 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode,
-            width: { ideal: 1080 },
-            height: { ideal: 1920 },
+            width: { ideal: 720 },
+            height: { ideal: 1280 },
             aspectRatio: { ideal: 9 / 16 },
           },
           audio: true,
@@ -138,6 +141,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
       setCameraReady(false)
       setCameraError(null)
       setIsStopping(false)
+      setIsUploading(false)
       setSupportsZoom(false)
       setZoomLevel(1)
       setSupportsTorch(false)
@@ -194,14 +198,18 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
     chunksRef.current = []
     setRecordingTime(0)
 
-    // Choose supported mime type
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-      ? "video/webm;codecs=vp9,opus"
+    // VP8 é mais leve que VP9 em mobile — menos lag; fallback para webm genérico ou mp4
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
       : MediaRecorder.isTypeSupported("video/webm")
         ? "video/webm"
         : "video/mp4"
 
-    const recorder = new MediaRecorder(streamRef.current, { mimeType })
+    const recorder = new MediaRecorder(streamRef.current, {
+      mimeType,
+      videoBitsPerSecond: 1_500_000, // 1.5 Mbps — fluido em 720p
+      audioBitsPerSecond: 96_000,
+    })
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
@@ -262,6 +270,46 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
     }
   }, [supportsTorch, torchOn])
 
+  const handleUploadFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      // Reseta input para permitir re-seleção do mesmo arquivo
+      if (e.target) e.target.value = ""
+      if (!file || !product || !onSave) return
+
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error("Arquivo muito grande. Máximo 50 MB.")
+        return
+      }
+
+      // Valida duração lendo metadados sem carregar o vídeo inteiro
+      const objectUrl = URL.createObjectURL(file)
+      const tempVideo = document.createElement("video")
+      tempVideo.preload = "metadata"
+      const duration = await new Promise<number>((resolve) => {
+        tempVideo.onloadedmetadata = () => resolve(tempVideo.duration)
+        tempVideo.onerror = () => resolve(-1)
+        tempVideo.src = objectUrl
+      })
+      URL.revokeObjectURL(objectUrl)
+
+      if (duration < 0) {
+        toast.error("Não foi possível verificar a duração. Tente outro arquivo.")
+        return
+      }
+      if (duration > 10) {
+        toast.error(
+          `Vídeo muito longo (${Math.ceil(duration)}s). Máximo 10s. Recorte antes de enviar.`
+        )
+        return
+      }
+
+      setIsUploading(true)
+      onSave(product.id, file)
+    },
+    [product, onSave]
+  )
+
   const handleClose = useCallback(() => {
     if (isRecording) {
       // Discard recording
@@ -293,10 +341,10 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
     >
       {/* Camera viewfinder - REAL camera feed */}
       <div className="relative flex-1 bg-neutral-950 flex flex-col overflow-hidden">
-        {/* Live video preview */}
+        {/* Live video preview — object-cover para preencher como o card retrato */}
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-contain"
+          className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           playsInline
           muted
@@ -326,14 +374,14 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
           </div>
         )}
 
-        {/* Uploading overlay */}
-        {isStopping && (
+        {/* Uploading / preparing overlay */}
+        {(isStopping || isUploading) && (
           <div className="absolute inset-0 z-30 bg-neutral-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
               <Upload className="w-7 h-7 text-white animate-pulse" />
             </div>
             <p className="text-white font-medium text-sm">
-              Preparando video...
+              {isUploading ? "Enviando vídeo..." : "Preparando video..."}
             </p>
           </div>
         )}
@@ -432,6 +480,21 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
           </div>
         )}
 
+        {/* Upload from file — visível só quando câmera pronta e não gravando */}
+        {cameraReady && !isRecording && !isStopping && !isUploading && (
+          <div className="relative z-20 flex justify-center pb-1">
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              className="flex items-center gap-2 px-5 py-2 rounded-full bg-black/50 backdrop-blur-md text-white/90 text-xs font-semibold hover:bg-black/70 active:scale-95 transition-all border border-white/10"
+              aria-label="Enviar vídeo do celular"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              Enviar vídeo do celular
+            </button>
+          </div>
+        )}
+
         {/* Bottom controls */}
         <div className="relative z-20 flex items-center justify-center gap-8 px-6 pb-10 pt-4">
           {/* Flash button — only when the device supports torch */}
@@ -453,7 +516,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
           {/* Record button */}
           <button
             onClick={handleRecordToggle}
-            disabled={!cameraReady || isStopping}
+            disabled={!cameraReady || isStopping || isUploading}
             className="relative flex items-center justify-center w-20 h-20 rounded-full transition-all active:scale-95 disabled:opacity-40"
             aria-label={isRecording ? "Parar gravacao" : "Iniciar gravacao"}
           >
@@ -474,7 +537,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
           {/* Switch camera */}
           <button
             onClick={handleSwitchCamera}
-            disabled={isRecording}
+            disabled={isRecording || isUploading}
             className="flex items-center justify-center w-12 h-12 rounded-full bg-black/30 backdrop-blur-md text-white transition-colors hover:bg-black/50 active:scale-95 disabled:opacity-40"
             aria-label="Trocar camera"
           >
@@ -483,9 +546,9 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
         </div>
 
         {/* Recording hint text */}
-        <div className="relative z-20 flex justify-center pb-6">
+        <div className="relative z-20 flex flex-col items-center gap-1 pb-6">
           <span className="text-white/40 text-xs">
-            {isStopping
+            {isStopping || isUploading
               ? "Salvando video..."
               : isRecording
                 ? `Toque para parar (max ${MAX_RECORDING_SECONDS}s)`
@@ -493,7 +556,21 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
                   ? "Toque no botao vermelho para gravar"
                   : ""}
           </span>
+          {cameraReady && !isRecording && !isStopping && !isUploading && (
+            <span className="text-white/25 text-[10px]">
+              Grave ou envie em modo retrato para melhor exibição nos cards
+            </span>
+          )}
         </div>
+
+        {/* Input oculto para upload de vídeo do celular */}
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={handleUploadFile}
+        />
       </div>
     </div>
   )

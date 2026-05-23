@@ -41,6 +41,7 @@ interface CartDrawerProps {
   isStoreOpen?: boolean
   storeName?: string
   chavePix?: string
+  valorMinimoEntrega?: number
 }
 
 export function CartDrawer({
@@ -58,6 +59,7 @@ export function CartDrawer({
   isStoreOpen = true,
   storeName = "Loja",
   chavePix,
+  valorMinimoEntrega = 0,
 }: CartDrawerProps) {
   const [customerName, setCustomerName] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "dinheiro">("dinheiro")
@@ -145,6 +147,10 @@ export function CartDrawer({
     return subtotal
   }, [subtotal, deliveryType, deliveryFee])
 
+  const abaixoDoMinimo =
+    deliveryType === "delivery" && valorMinimoEntrega > 0 && subtotal < valorMinimoEntrega
+  const faltamParaMinimo = abaixoDoMinimo ? valorMinimoEntrega - subtotal : 0
+
   const formatPrice = (value: number) =>
     value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -211,22 +217,22 @@ export function CartDrawer({
         return `✅ *${item.quantity}x* ${item.product.name} (R$ ${formatPrice(lineTotal)})`
       }).join("\n")
 
-      let message = `📦 *NOVO PEDIDO - ${storeName.toUpperCase()}*\n`
+      let message = `*NOVO PEDIDO - ${storeName.toUpperCase()}*\n`
       message += `--------------------------------\n\n`
-      message += `🛒 *ITENS DO PEDIDO:*\n${itemsText}\n\n`
+      message += `*ITENS DO PEDIDO:*\n${itemsText}\n\n`
       message += `--------------------------------\n`
       message += `*Subtotal:* R$ ${formatPrice(subtotal)}\n`
       if (deliveryType === "delivery" && deliveryFee > 0) {
         message += `*Taxa de Entrega:* R$ ${formatPrice(deliveryFee)}\n`
       }
-      message += `💰 *TOTAL: R$ ${formatPrice(total)}*\n\n`
+      message += `*TOTAL: R$ ${formatPrice(total)}*\n\n`
       message += `--------------------------------\n`
-      message += `👤 *CLIENTE:* ${customerName}\n`
-      message += `📍 *FORMA DE RECEBIMENTO:* ${deliveryType === "delivery" ? "🚀 Entrega" : "🏪 Retirada na Loja"}\n`
-      message += `💳 *PAGAMENTO:* ${paymentMethod === "pix" ? "💠 Pix" : paymentMethod === "cartao" ? "💳 Cartão (Máquina)" : "💵 Dinheiro"}\n`
+      message += `*CLIENTE:* ${customerName}\n`
+      message += `*FORMA DE RECEBIMENTO:* ${deliveryType === "delivery" ? "Entrega" : "Retirada na Loja"}\n`
+      message += `*PAGAMENTO:* ${paymentMethod === "pix" ? "Pix" : paymentMethod === "cartao" ? "Cartao (Maquina)" : "Dinheiro"}\n`
       
       if (deliveryType === "delivery") {
-        message += `\n🏠 *ENDEREÇO DE ENTREGA:*\n${finalAddress}\n`
+        message += `\n*ENDERECO DE ENTREGA:*\n${finalAddress}\n`
       }
       
       message += `\n--------------------------------\n`
@@ -491,9 +497,17 @@ export function CartDrawer({
                 </p>
               </div>
             )}
-            <button 
-              onClick={handleWhatsAppCheckout} 
-              disabled={isSubmitting || !isStoreOpen} 
+            {abaixoDoMinimo && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <p className="text-[11px] font-medium leading-tight">
+                  Pedido mínimo para entrega: R$ {formatPrice(valorMinimoEntrega)}. Faltam R$ {formatPrice(faltamParaMinimo)}.
+                </p>
+              </div>
+            )}
+            <button
+              onClick={handleWhatsAppCheckout}
+              disabled={isSubmitting || !isStoreOpen || abaixoDoMinimo} 
               className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-[#25D366] text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
             >
               <MessageCircle className="w-5 h-5" />

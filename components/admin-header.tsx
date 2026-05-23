@@ -2,6 +2,7 @@
 
 import { LogOut, Menu, Volume2, VolumeX } from "lucide-react"
 import { Logo } from "./ui/logo"
+import { ThemeToggle } from "./theme-toggle"
 
 interface AdminHeaderProps {
   onMenuClick?: () => void
@@ -38,6 +39,7 @@ export function AdminHeader({ onMenuClick, onLogout, soundEnabled, onToggleSound
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {onToggleSound && (
             <button
               onClick={onToggleSound}
