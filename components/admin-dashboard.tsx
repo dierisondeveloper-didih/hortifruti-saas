@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import {
   Package,
   ShoppingBag,
@@ -12,10 +13,11 @@ import {
   CheckCheck,
   Loader2,
   TrendingUp,
-  BarChart3,
   Calendar,
   Share2,
   QrCode,
+  ChevronRight,
+  Download,
 } from "lucide-react"
 import {
   LineChart,
@@ -44,6 +46,7 @@ interface DashboardData {
   nomeLoja: string
   slug: string
   totalProdutos: number
+  produtosDoLojista: number
   totalPedidos: number
   pedidosPendentes: number
   videosDesatualizados: number
@@ -52,12 +55,18 @@ interface DashboardData {
   topProducts: TopProduct[]
 }
 
-export function AdminDashboard() {
+interface AdminDashboardProps {
+  onNavigate?: (tab: "dashboard" | "videos" | "products") => void
+}
+
+export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [downloadingQR, setDownloadingQR] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const shareRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const check = () => setIsDark(document.documentElement.classList.contains("dark"))
@@ -79,7 +88,7 @@ export function AdminDashboard() {
         const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
         const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-        const [configRes, lojaRes, produtosRes, pedidosRes, videosRes] =
+        const [configRes, lojaRes, produtosRes, pedidosRes, videosRes, produtosLojistaRes] =
           await Promise.all([
             supabase
               .from("configuracoes")
@@ -103,6 +112,11 @@ export function AdminDashboard() {
               .select("*", { count: "exact", head: true })
               .eq("dono_id", donoId)
               .or(`ultimo_video_em.is.null,ultimo_video_em.lt.${cutoff24h}`),
+            supabase
+              .from("produtos")
+              .select("*", { count: "exact", head: true })
+              .eq("dono_id", donoId)
+              .eq("criado_automaticamente", false),
           ])
 
         // Processamento de dados para o gráfico
@@ -151,6 +165,7 @@ export function AdminDashboard() {
           nomeLoja: configRes.data?.nome_loja || "Minha Loja",
           slug: lojaRes.data?.slug || "",
           totalProdutos: produtosRes.count ?? 0,
+          produtosDoLojista: produtosLojistaRes.count ?? 0,
           totalPedidos: orders.length,
           pedidosPendentes: pendentes,
           videosDesatualizados: videosRes.count ?? 0,
@@ -176,6 +191,31 @@ export function AdminDashboard() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const handleDownloadQR = async () => {
+    if (!storeUrl) return
+    setDownloadingQR(true)
+    try {
+      // 512px = boa resolução para impressão
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&margin=16&data=${encodeURIComponent(storeUrl)}`
+      const res = await fetch(qrUrl)
+      if (!res.ok) throw new Error("Falha ao gerar QR")
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = objectUrl
+      const slug = data?.slug ? data.slug : "loja"
+      a.download = `qrcode-${slug}.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      toast.error("Não foi possível baixar o QR code. Tente novamente.")
+    } finally {
+      setDownloadingQR(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -188,7 +228,7 @@ export function AdminDashboard() {
   if (!data) return null
 
   // Onboarding: mostra primeiros passos enquanto a loja não decolou
-  const hasProducts = data.totalProdutos > 0
+  const hasProducts = data.produtosDoLojista > 0
   const hasVideos = data.totalProdutos > 0 && data.videosDesatualizados < data.totalProdutos
   const hasOrders = data.totalPedidos > 0
   const allDone = hasProducts && hasVideos && hasOrders
@@ -200,18 +240,21 @@ export function AdminDashboard() {
       title: "Cadastre seus produtos",
       desc: "Monte seu catálogo com preços e fotos.",
       icon: Package,
+      target: "products" as const,
     },
     {
       done: hasVideos,
       title: "Grave os vídeos ao vivo",
       desc: "Mostre o frescor dos seus produtos em vídeo.",
       icon: VideoOff,
+      target: "videos" as const,
     },
     {
       done: hasOrders,
       title: "Compartilhe sua loja",
       desc: "Envie seu link pelo WhatsApp e receba pedidos.",
       icon: ExternalLink,
+      target: "share" as const,
     },
   ]
   const completedSteps = onboardingSteps.filter((s) => s.done).length
@@ -255,9 +298,6 @@ export function AdminDashboard() {
           <h2 className="text-2xl font-black text-foreground tracking-tight">Olá, {data.nomeLoja.split(" ")[0]}!</h2>
           <p className="text-sm text-muted-foreground">Aqui está o desempenho da sua loja.</p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-          <BarChart3 className="w-5 h-5 text-primary" />
-        </div>
       </div>
 
       {/* Onboarding — primeiros passos (some quando a loja decola) */}
@@ -273,13 +313,23 @@ export function AdminDashboard() {
           <div className="space-y-2.5">
             {onboardingSteps.map((step, i) => {
               const Icon = step.icon
+              const handleStepClick = () => {
+                if (step.done) return
+                if (step.target === "share") {
+                  shareRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                } else {
+                  onNavigate?.(step.target)
+                }
+              }
               return (
-                <div
+                <button
                   key={i}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                  onClick={handleStepClick}
+                  disabled={step.done}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                     step.done
-                      ? "bg-primary/5 border-primary/10 opacity-60"
-                      : "bg-card border-border"
+                      ? "bg-primary/5 border-primary/10 opacity-60 cursor-default"
+                      : "bg-card border-border hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] cursor-pointer"
                   }`}
                 >
                   <div
@@ -299,7 +349,10 @@ export function AdminDashboard() {
                     </p>
                     <p className="text-xs text-muted-foreground">{step.desc}</p>
                   </div>
-                </div>
+                  {!step.done && (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  )}
+                </button>
               )
             })}
           </div>
@@ -410,7 +463,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Link público da loja - Reestilizado */}
-      <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4">
+      <div ref={shareRef} className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-primary uppercase tracking-widest">
             Sua vitrine online
@@ -477,6 +530,18 @@ export function AdminDashboard() {
             <p className="text-xs text-muted-foreground text-center max-w-[220px]">
               Imprima e cole no balcão para os clientes acessarem sua loja pelo celular.
             </p>
+            <button
+              onClick={handleDownloadQR}
+              disabled={downloadingQR}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
+            >
+              {downloadingQR ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {downloadingQR ? "Preparando..." : "Baixar QR code"}
+            </button>
           </div>
         )}
       </div>

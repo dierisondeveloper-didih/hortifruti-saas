@@ -1,13 +1,18 @@
+// ============================================================
 // Service Worker — Hortifruti SaaS
-// Suporta: PWA básico + recepção de Web Push (notificação com app fechado)
+// Suporta PWA (instalável) + recepção de Web Push.
 //
-// PARA ATIVAR O PUSH REAL (passo futuro, junto com o Dierison):
-// 1. Gerar par de chaves VAPID (web-push generate-vapid-keys)
-// 2. Guardar VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY em env vars (Vercel)
-// 3. No cliente: pedir permissão e registrar subscription (Notification + pushManager.subscribe)
-// 4. Salvar a subscription no Supabase, associada ao dono_id
-// 5. Disparar o push via cron-job.org -> endpoint serverless quando entra pedido
-// Enquanto isso, a notificação sonora + toast (app aberto) já funciona via realtime.
+// NÃO intercepta fetch: o handler de fetch anterior devolvia 408
+// quando alguma requisição falhava (comum em dev/HMR), poluindo o
+// console sem trazer benefício. PWA instalável não exige fetch handler.
+//
+// PARA ATIVAR O PUSH REAL (passo futuro):
+// 1. Gerar par VAPID (web-push generate-vapid-keys)
+// 2. Guardar chaves em env vars (Vercel)
+// 3. No cliente: pedir permissão + registrar subscription
+// 4. Salvar subscription no Supabase, associada ao dono_id
+// 5. Disparar push via cron quando entra pedido
+// ============================================================
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -17,12 +22,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-self.addEventListener('fetch', (event) => {
-  // Pass-through (necessário para o critério de PWA instalável)
-  event.respondWith(fetch(event.request).catch(() => new Response('', { status: 408 })))
-})
-
-// Recebe o push do servidor e mostra a notificação (funciona com app fechado)
+// Recebe push do servidor e mostra a notificação (funciona com app fechado)
 self.addEventListener('push', (event) => {
   let payload = { title: 'Novo pedido!', body: 'Você recebeu um novo pedido.' }
   try {

@@ -228,6 +228,30 @@ export default function SuperAdminPage() {
     setActiveTab("novo")
   }
 
+  // ── Excluir Lead ─────────────────────────────────────────────────────────
+  async function handleDeleteLead(leadId: string) {
+    setUpdatingLeadId(leadId)
+    setLeadsFeedback(null)
+
+    try {
+      const authHeader = await getAuthHeader()
+      const res = await fetch("/api/super-admin/leads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({ leadId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      setLeadsFeedback({ type: "success", text: "Lead excluído." })
+      await fetchLeads()
+    } catch (err: any) {
+      setLeadsFeedback({ type: "error", text: err.message })
+    } finally {
+      setUpdatingLeadId(null)
+    }
+  }
+
   // ── Toggle ativo/inativo ──────────────────────────────────────────────────
 
   async function handleToggleAtivo(loja: LojaData) {
@@ -298,7 +322,7 @@ export default function SuperAdminPage() {
       if (!res.ok) throw new Error(data.error)
 
       setLojasFeedback({ type: "success", text: data.message })
-      if (data.created > 0) await fetchLojas()
+      if (data.configsCriadas > 0) await fetchLojas()
     } catch (err: any) {
       setLojasFeedback({ type: "error", text: err.message })
     } finally {
@@ -723,7 +747,16 @@ export default function SuperAdminPage() {
                             {lead.nome_loja}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {lead.nome_responsavel} • {lead.telefone_whatsapp}
+                            {lead.nome_responsavel} •{" "}
+                            <a
+                              href={`https://wa.me/55${lead.telefone_whatsapp.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-green-600 hover:underline font-medium"
+                            >
+                              {lead.telefone_whatsapp}
+                            </a>
                           </p>
                         </div>
                         <span
@@ -775,6 +808,31 @@ export default function SuperAdminPage() {
                           >
                             Recusar
                           </button>
+                        )}
+
+                        {/* Lead já decidido (aprovado/recusado): reabrir ou excluir */}
+                        {(lead.status === "aprovado" || lead.status === "recusado") && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateLeadStatus(lead.id, "pendente")}
+                              disabled={isUpdating}
+                              className="flex-1 py-2 text-xs font-medium rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/70 transition-all disabled:opacity-50"
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                              ) : (
+                                "Reabrir"
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLead(lead.id)}
+                              disabled={isUpdating}
+                              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Excluir
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

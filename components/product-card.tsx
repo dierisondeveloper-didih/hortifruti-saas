@@ -20,6 +20,7 @@ export interface Product {
   offerPrice?: number
   videoUrl?: string
   stock?: number
+  controlaEstoque?: boolean
 }
 
 interface ProductCardProps {
@@ -162,7 +163,7 @@ export function ProductCard({ product, onAddToCart, onVideoClick, onDetailsClick
         <h3 className="text-sm font-semibold text-foreground leading-tight line-clamp-1">
           {product.name}
         </h3>
-        {product.stock !== undefined && (
+        {product.controlaEstoque && product.stock !== undefined && (
           <p className={`text-xs mt-0.5 font-medium ${product.stock > 0 ? "text-muted-foreground" : "text-destructive"}`}>
             {product.stock > 0 ? `Estoque: ${product.stock} ${product.unit}` : "Esgotado"}
           </p>

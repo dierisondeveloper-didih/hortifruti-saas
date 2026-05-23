@@ -181,6 +181,7 @@ export default function AdminPage() {
           preco: data.preco,
           unidade: data.unidade,
           estoque: data.estoque,
+          controla_estoque: data.controla_estoque ?? false,
           categoria: data.categoria,
           imagem_url: data.imagem_url || null,
           em_oferta: data.em_oferta || false,
@@ -220,10 +221,12 @@ export default function AdminPage() {
             preco: data.preco,
             unidade: data.unidade,
             estoque: data.estoque,
+            controla_estoque: data.controla_estoque ?? false,
             categoria: data.categoria,
             imagem_url: data.imagem_url || null,
             em_oferta: data.em_oferta || false,
             preco_oferta: data.preco_oferta || 0,
+            criado_automaticamente: false, // lojista editou = adotou o produto
           })
           .eq("id", data.id)
           .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
@@ -423,7 +426,7 @@ export default function AdminPage() {
         onTabChange={setActiveTab}
       />
 
-      {activeTab === "dashboard" && <AdminDashboard />}
+      {activeTab === "dashboard" && <AdminDashboard onNavigate={setActiveTab} />}
 
       {activeTab !== "dashboard" && isLoading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">

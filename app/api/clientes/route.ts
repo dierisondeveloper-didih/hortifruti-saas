@@ -22,13 +22,30 @@ export async function POST(request: Request) {
 
     const userId = authData.user.id
 
+    // Garante slug único: se já existir, adiciona sufixo -2, -3, etc.
+    let slugFinal = slug
+    {
+      let tentativa = 1
+      while (true) {
+        const { data: existente } = await supabaseAdmin
+          .from('lojas')
+          .select('id')
+          .eq('slug', slugFinal)
+          .maybeSingle()
+
+        if (!existente) break // slug livre
+        tentativa += 1
+        slugFinal = `${slug}-${tentativa}`
+      }
+    }
+
     // 2. Cria a loja atrelada a esse novo usuário
     const { data: lojaData, error: lojaError } = await supabaseAdmin
       .from('lojas')
       .insert([
         { 
           name: nomeLoja, 
-          slug: slug, 
+          slug: slugFinal, 
           ativo: true, 
           dono_id: userId 
         }
@@ -61,7 +78,13 @@ export async function POST(request: Request) {
       throw configError
     }
 
-    // 4. Cria categorias e produtos iniciais (falha silenciosa — são conveniência, não requisito)
+    // 4. Cria categorias e produtos iniciais.
+    //    São conveniência (não bloqueiam a criação da conta), mas os erros
+    //    NÃO são mais engolidos silenciosamente — ficam visíveis na resposta
+    //    para diagnóstico. Categorias e produtos são inseridos separadamente
+    //    para que a falha de um não impeça o outro.
+    const seedWarnings: string[] = []
+
     try {
       const categoriasPadrao = [
         "Frutas",
@@ -72,10 +95,20 @@ export async function POST(request: Request) {
         "Ovos e Laticínios",
       ]
 
-      await supabaseAdmin
+      const { error: catError } = await supabaseAdmin
         .from("categorias")
         .insert(categoriasPadrao.map((nome) => ({ nome, dono_id: userId })))
 
+      if (catError) {
+        console.error("Erro ao criar categorias iniciais:", catError)
+        seedWarnings.push(`categorias: ${catError.message}`)
+      }
+    } catch (e: any) {
+      console.error("Exceção ao criar categorias:", e)
+      seedWarnings.push(`categorias: ${e?.message ?? String(e)}`)
+    }
+
+    try {
       const produtosPadrao = [
         // Frutas
         { nome: "Banana Nanica", preco: 5.99, unidade: "kg", categoria: "Frutas" },
@@ -107,7 +140,7 @@ export async function POST(request: Request) {
         { nome: "Queijo Minas Frescal", preco: 34.99, unidade: "kg", categoria: "Ovos e Laticínios" },
       ]
 
-      await supabaseAdmin
+      const { error: prodError } = await supabaseAdmin
         .from("produtos")
         .insert(
           produtosPadrao.map((p) => ({
@@ -116,13 +149,24 @@ export async function POST(request: Request) {
             estoque: 0,
             em_oferta: false,
             imagem_url: null,
+            criado_automaticamente: true,
           }))
         )
-    } catch (seedError) {
-      console.error("Erro ao criar dados iniciais (não crítico):", seedError)
+
+      if (prodError) {
+        console.error("Erro ao criar produtos iniciais:", prodError)
+        seedWarnings.push(`produtos: ${prodError.message}`)
+      }
+    } catch (e: any) {
+      console.error("Exceção ao criar produtos:", e)
+      seedWarnings.push(`produtos: ${e?.message ?? String(e)}`)
     }
 
-    return NextResponse.json({ success: true, loja: lojaData[0] })
+    return NextResponse.json({
+      success: true,
+      loja: lojaData[0],
+      ...(seedWarnings.length > 0 ? { seedWarnings } : {}),
+    })
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 })

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Package, ImagePlus, Loader2, Upload, Camera } from "lucide-react"
+import { X, Package, ImagePlus, Loader2, Upload, Camera, ChevronDown, Check } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
@@ -12,6 +12,7 @@ export interface ProductFormData {
   preco: number
   unidade: string
   estoque: number
+  controla_estoque?: boolean
   categoria: string
   imagem_url?: string
   em_oferta?: boolean
@@ -37,6 +38,7 @@ const defaultData: ProductFormData = {
   preco: 0,
   unidade: "kg",
   estoque: 0,
+  controla_estoque: false,
   categoria: "frutas",
   imagem_url: "",
   em_oferta: false,
@@ -53,10 +55,12 @@ export function ProductFormModal({
 }: ProductFormModalProps) {
   const [formData, setFormData] = useState<ProductFormData>(defaultData)
   const [isUploading, setIsUploading] = useState(false) // Estado para controlar o carregamento da imagem
+  const [catDropdownOpen, setCatDropdownOpen] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       setFormData(initialData ?? defaultData)
+      setCatDropdownOpen(false)
       document.body.style.overflow = "hidden"
     }
     return () => {
@@ -291,50 +295,121 @@ export function ProductFormModal({
             </div>
           </div>
 
-          {/* Estoque */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="estoque" className="text-sm font-medium text-foreground">
-              Estoque
-            </label>
-            <input
-              id="estoque"
-              type="number"
-              min="0"
-              value={formData.estoque || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  estoque: parseInt(e.target.value) || 0,
-                }))
-              }
-              placeholder="0"
-              className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+          {/* Controle de estoque */}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-input bg-background">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">Controlar estoque?</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formData.controla_estoque
+                    ? "O produto mostra \"Esgotado\" quando o estoque chega a zero."
+                    : "Produto sempre disponível. Não precisa gerenciar quantidade."}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={formData.controla_estoque ?? false}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    controla_estoque: !prev.controla_estoque,
+                  }))
+                }
+                className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${
+                  formData.controla_estoque ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    formData.controla_estoque ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {formData.controla_estoque && (
+              <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <label htmlFor="estoque" className="text-sm font-medium text-foreground">
+                  Quantidade em estoque
+                </label>
+                <input
+                  id="estoque"
+                  type="number"
+                  min="0"
+                  value={formData.estoque || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      estoque: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                  placeholder="0"
+                  className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
           </div>
 
           {/* Categoria */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="categoria" className="text-sm font-medium text-foreground">
+            <label className="text-sm font-medium text-foreground">
               Categoria
             </label>
-            <select
-              id="categoria"
-              value={formData.categoria}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, categoria: e.target.value }))
-              }
-              className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {categories.length === 0 ? (
-                <option value="">Nenhuma categoria cadastrada</option>
-              ) : (
-                categories.map((cat) => (
-                  <option key={cat.id} value={cat.nome.toLowerCase()}>
-                    {cat.nome}
-                  </option>
-                ))
-              )}
-            </select>
+            {categories.length === 0 ? (
+              <div className="w-full px-3 py-2.5 rounded-xl border border-input bg-background text-muted-foreground text-sm">
+                Nenhuma categoria cadastrada
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCatDropdownOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <span className="truncate">
+                    {categories.find((c) => c.nome.toLowerCase() === formData.categoria)?.nome
+                      ?? "Selecione uma categoria"}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${catDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {catDropdownOpen && (
+                  <>
+                    {/* clique-fora fecha */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setCatDropdownOpen(false)}
+                      aria-hidden="true"
+                    />
+                    <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-border bg-card shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      {categories.map((cat) => {
+                        const value = cat.nome.toLowerCase()
+                        const selected = value === formData.categoria
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, categoria: value }))
+                              setCatDropdownOpen(false)
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 text-left text-sm transition-colors hover:bg-secondary ${
+                              selected ? "text-primary font-semibold" : "text-foreground"
+                            }`}
+                          >
+                            <span className="truncate">{cat.nome}</span>
+                            {selected && <Check className="w-4 h-4 shrink-0" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Oferta */}
