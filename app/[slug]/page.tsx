@@ -17,6 +17,7 @@ import { AppFooter } from "@/components/app-footer"
 import { useModalHistory } from "@/hooks/useModalHistory"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt"
 
 function seededRandom(seed: string): number {
   let hash = 0
@@ -62,6 +63,8 @@ interface StoreSettings {
   tipo_servico?: "entrega" | "retirada" | "ambos"
   horario_abertura?: string
   horario_fechamento?: string
+  horario_abertura_fds?: string
+  horario_fechamento_fds?: string
   dias_funcionamento?: string
   mensagem_rodape?: string
 }
@@ -212,6 +215,13 @@ export default function StoreCatalog() {
   useEffect(() => {
     fetchData()
   }, [slug])
+
+  // Atualiza o título da aba do navegador
+  useEffect(() => {
+    if (settings?.nome_loja) {
+      document.title = settings.nome_loja
+    }
+  }, [settings?.nome_loja])
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -443,6 +453,13 @@ export default function StoreCatalog() {
           valorMinimoEntrega={settings?.valor_minimo_entrega}
         />
 
+      )}
+
+      {settings && (
+        <PwaInstallPrompt 
+          storeName={settings.nome_loja} 
+          primaryColor={settings.cor_primaria} 
+        />
       )}
     </div>
   )

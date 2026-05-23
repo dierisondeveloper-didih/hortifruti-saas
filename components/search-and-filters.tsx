@@ -54,7 +54,24 @@ export function SearchAndFilters({
           placeholder="Buscar produtos frescos..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+          className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+          style={primaryColor ? { 
+            borderColor: activeCategory !== "all" ? primaryColor : undefined,
+            boxShadow: "none" // We'll handle ring via CSS or simpler approach
+          } : undefined}
+          onFocus={(e) => {
+            if (primaryColor) {
+              e.currentTarget.style.borderColor = primaryColor
+              e.currentTarget.style.ringColor = `${primaryColor}66`
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${primaryColor}66`
+            }
+          }}
+          onBlur={(e) => {
+            if (primaryColor) {
+              e.currentTarget.style.borderColor = ""
+              e.currentTarget.style.boxShadow = ""
+            }
+          }}
         />
       </div>
 

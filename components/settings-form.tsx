@@ -20,6 +20,8 @@ export interface StoreSettings {
   tipo_servico?: TipoServico
   horario_abertura?: string
   horario_fechamento?: string
+  horario_abertura_fds?: string
+  horario_fechamento_fds?: string
 }
 
 interface SettingsFormProps {
@@ -41,6 +43,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
   const [corPrimaria, setCorPrimaria] = useState("#2d8a4e")
   const [horarioAbertura, setHorarioAbertura] = useState("08:00")
   const [horarioFechamento, setHorarioFechamento] = useState("20:00")
+  const [horarioAberturaFds, setHorarioAberturaFds] = useState("")
+  const [horarioFechamentoFds, setHorarioFechamentoFds] = useState("")
   const [mensagemRodape, setMensagemRodape] = useState("")
   const [valorMinimo, setValorMinimo] = useState("0")
   const [diasFuncionamento, setDiasFuncionamento] = useState<number[]>([1, 2, 3, 4, 5])
@@ -92,6 +96,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           setTipoServico("ambos")
           setCorPrimaria("#2d8a4e")
           setLogoUrl("")
+          setHorarioAberturaFds("")
+          setHorarioFechamentoFds("")
         } else {
           setError(supaError.message)
         }
@@ -112,6 +118,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         setCorPrimaria(String(data.cor_primaria ?? "#2d8a4e"))
         setHorarioAbertura(String(data.horario_abertura ?? "08:00"))
         setHorarioFechamento(String(data.horario_fechamento ?? "20:00"))
+        setHorarioAberturaFds(String(data.horario_abertura_fds ?? ""))
+        setHorarioFechamentoFds(String(data.horario_fechamento_fds ?? ""))
         setMensagemRodape(String(data.mensagem_rodape ?? ""))
         setLogoUrl(String(data.logo_url ?? ""))
       }
@@ -181,6 +189,8 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
         cor_primaria: corPrimaria,
         horario_abertura: horarioAbertura,
         horario_fechamento: horarioFechamento,
+        horario_abertura_fds: horarioAberturaFds || null,
+        horario_fechamento_fds: horarioFechamentoFds || null,
         mensagem_rodape: mensagemRodape.trim() || null,
         logo_url: uploadedLogoUrl || null,
         dono_id: user.id
@@ -434,7 +444,7 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="opening-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Abertura</label>
+              <label htmlFor="opening-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Abertura (Semana)</label>
               <input
                 id="opening-hour"
                 type="time"
@@ -444,12 +454,35 @@ export function SettingsForm({ onSave }: SettingsFormProps) {
               />
             </div>
             <div>
-              <label htmlFor="closing-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Fechamento</label>
+              <label htmlFor="closing-hour" className="block text-xs font-medium text-muted-foreground mb-1.5">Fechamento (Semana)</label>
               <input
                 id="closing-hour"
                 type="time"
                 value={horarioFechamento}
                 onChange={(e) => setHorarioFechamento(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <label htmlFor="opening-hour-fds" className="block text-xs font-medium text-muted-foreground mb-1.5">Abertura (Sáb/Dom - Opcional)</label>
+              <input
+                id="opening-hour-fds"
+                type="time"
+                value={horarioAberturaFds}
+                onChange={(e) => setHorarioAberturaFds(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label htmlFor="closing-hour-fds" className="block text-xs font-medium text-muted-foreground mb-1.5">Fechamento (Sáb/Dom - Opcional)</label>
+              <input
+                id="closing-hour-fds"
+                type="time"
+                value={horarioFechamentoFds}
+                onChange={(e) => setHorarioFechamentoFds(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground text-sm border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>

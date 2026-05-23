@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState } from "react"
 import Image from "next/image"
 import { X, ShoppingCart, Check, Tag } from "lucide-react"
 import type { Product } from "./product-card"
+import { useBackButtonClose } from "@/hooks/use-back-button-close"
 
 interface ProductDetailsModalProps {
   product: Product | null
@@ -21,6 +22,8 @@ export function ProductDetailsModal({
   primaryColor,
 }: ProductDetailsModalProps) {
   const [added, setAdded] = useState(false)
+
+  useBackButtonClose(isOpen, onClose)
 
   // Handle escape key
   useEffect(() => {

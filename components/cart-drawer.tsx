@@ -20,6 +20,7 @@ import {
 import type { Product } from "./product-card"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { useBackButtonClose } from "@/hooks/use-back-button-close"
 
 export interface CartItem {
   product: Product
@@ -61,6 +62,8 @@ export function CartDrawer({
   chavePix,
   valorMinimoEntrega = 0,
 }: CartDrawerProps) {
+  useBackButtonClose(isOpen, onClose)
+
   const [customerName, setCustomerName] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "cartao" | "dinheiro">("dinheiro")
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(

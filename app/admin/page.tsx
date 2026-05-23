@@ -81,18 +81,51 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        router.push("/login")
-        return
-      }
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error || !session) {
+          router.push("/login")
+          return
+        }
 
-      setIsAuthenticated(true)
-      setIsAuthChecking(false)
+        // Se a sessão existe mas expirou, tenta refresh explícito
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
+        if (Date.now() >= expiresAt) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError || !refreshData.session) {
+            router.push("/login")
+            return
+          }
+        }
+
+        setIsAuthenticated(true)
+        setIsAuthChecking(false)
+      } catch (err) {
+        console.error("[AUTH] Erro ao verificar sessão:", err)
+        router.push("/login")
+      }
     }
 
     checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`[AUTH] Evento: ${event}`)
+      
+      if (event === "SIGNED_OUT") {
+        setIsAuthenticated(false)
+        router.push("/login")
+      } else if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+        if (session) {
+          setIsAuthenticated(true)
+          setIsAuthChecking(false)
+        }
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [router])
 
   const handleLogout = useCallback(async () => {

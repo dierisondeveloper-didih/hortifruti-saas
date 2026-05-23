@@ -56,11 +56,13 @@ export function ProductFormModal({
   const [formData, setFormData] = useState<ProductFormData>(defaultData)
   const [isUploading, setIsUploading] = useState(false) // Estado para controlar o carregamento da imagem
   const [catDropdownOpen, setCatDropdownOpen] = useState(false)
+  const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       setFormData(initialData ?? defaultData)
       setCatDropdownOpen(false)
+      setImgError(false)
       document.body.style.overflow = "hidden"
     }
     return () => {
@@ -173,9 +175,14 @@ export function ProductFormModal({
             {/* Preview */}
             <div className="flex justify-center">
               <div className="relative w-28 h-28 rounded-xl border border-dashed border-input bg-background overflow-hidden">
-                {formData.imagem_url ? (
+                {formData.imagem_url && !imgError ? (
                   <>
-                    <img src={formData.imagem_url} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={formData.imagem_url}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={() => setImgError(true)}
+                    />
                     <button
                       type="button"
                       onClick={() => setFormData((prev) => ({ ...prev, imagem_url: "" }))}
@@ -186,8 +193,9 @@ export function ProductFormModal({
                     </button>
                   </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-muted/20">
                     <ImagePlus className="w-7 h-7 text-muted-foreground" />
+                    <span className="text-[10px] font-medium text-muted-foreground">Sem imagem</span>
                   </div>
                 )}
                 {isUploading && (

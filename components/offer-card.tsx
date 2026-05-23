@@ -61,10 +61,9 @@ export function OfferCard({ product, onAddToCart, onVideoClick, onDetailsClick, 
           border-radius: 1rem;
           padding: 2px;
           background: linear-gradient(135deg,
-            oklch(0.72 0.19 145),
-            oklch(0.80 0.17 90),
-            oklch(0.68 0.19 45),
-            oklch(0.72 0.19 145));
+            ${primaryColor || "#2d8a4e"},
+            ${primaryColor ? `${primaryColor}aa` : "#f97316"},
+            ${primaryColor || "#2d8a4e"});
           background-size: 300% 300%;
           -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
           -webkit-mask-composite: xor;
@@ -78,7 +77,9 @@ export function OfferCard({ product, onAddToCart, onVideoClick, onDetailsClick, 
         className="relative flex flex-row rounded-2xl overflow-hidden cursor-pointer group bg-card shadow-sm transition-all duration-300 h-32 z-10"
         onClick={handleCardClick}
         style={{
-          boxShadow: "inset 0 0 16px -2px oklch(0.72 0.19 145 / 0.55), inset 0 0 4px oklch(0.80 0.17 90 / 0.4)",
+          boxShadow: primaryColor 
+            ? `inset 0 0 16px -2px ${primaryColor}88` 
+            : "inset 0 0 16px -2px oklch(0.72 0.19 145 / 0.55), inset 0 0 4px oklch(0.80 0.17 90 / 0.4)",
         }}
       >
       {/* Media (left) */}

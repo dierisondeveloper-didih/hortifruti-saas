@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react"
 import { X } from "lucide-react"
+import { useBackButtonClose } from "@/hooks/use-back-button-close"
 
 interface FullScreenVideoPlayerProps {
   videoUrl: string
@@ -18,6 +19,8 @@ export function FullScreenVideoPlayer({
 }: FullScreenVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useBackButtonClose(isOpen, onClose)
 
   // Handle escape key to close
   const handleKeyDown = useCallback(
