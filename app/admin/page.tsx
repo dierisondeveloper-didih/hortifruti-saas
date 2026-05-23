@@ -11,12 +11,14 @@ import { ProductManagement, type ManagedProduct } from "@/components/product-man
 import { type ProductFormData } from "@/components/product-form-modal"
 import { supabase } from "@/lib/supabase"
 import { getProductImage, formatFreshTimestamp, getVideoStatus } from "@/lib/product-utils"
-import { Loader2, WifiOff, RefreshCw, Construction } from "lucide-react"
+import { Loader2, WifiOff, RefreshCw } from "lucide-react"
 import { SettingsForm } from "@/components/settings-form"
 import { CategoryManagement } from "@/components/category-management"
 import { OrdersManagement } from "@/components/orders-management"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { AppFooter } from "@/components/app-footer"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { useOrderNotifications } from "@/lib/use-order-notifications"
 import { toast } from "sonner"
 
 function mapRowToAdminProduct(row: Record<string, unknown>): AdminProduct {
@@ -51,6 +53,31 @@ export default function AdminPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [cameraProduct, setCameraProduct] = useState<AdminProduct | null>(null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
+
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [newOrderTick, setNewOrderTick] = useState(0)
+
+  // Modal de confirmação genérico (substitui window.confirm)
+  const [confirmState, setConfirmState] = useState<{
+    title: string
+    description?: string
+    confirmLabel?: string
+    action: () => void | Promise<void>
+  } | null>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("admin_sound_enabled")
+    if (saved !== null) setSoundEnabled(saved === "true")
+  }, [])
+
+  const toggleSound = useCallback(() => {
+    setSoundEnabled((prev) => {
+      const next = !prev
+      localStorage.setItem("admin_sound_enabled", String(next))
+      toast(next ? "Som de pedidos ativado" : "Som de pedidos silenciado")
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -119,6 +146,15 @@ export default function AdminPage() {
     fetchProducts()
   }, [fetchProducts])
 
+  useOrderNotifications({
+    enabled: isAuthenticated,
+    soundEnabled,
+    onNewOrder: () => {
+      fetchProducts()
+      setNewOrderTick((t) => t + 1)
+    },
+  })
+
   const outdatedCount = useMemo(
     () => products.filter((p) => p.videoStatus !== "updated").length,
     [products]
@@ -153,13 +189,14 @@ export default function AdminPage() {
         })
 
         if (insertError) {
-          alert("Erro ao adicionar produto: " + insertError.message)
+          toast.error("Erro ao adicionar produto: " + insertError.message)
           return
         }
 
+        toast.success("Produto adicionado!")
         await fetchProducts()
       } catch (err) {
-        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+        toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       }
     },
     [fetchProducts]
@@ -168,7 +205,7 @@ export default function AdminPage() {
   const handleEditProduct = useCallback(
     async (data: ProductFormData) => {
       if (!data.id) {
-        alert("Erro: ID do produto não encontrado")
+        toast.error("Erro: ID do produto não encontrado")
         return
       }
 
@@ -192,42 +229,48 @@ export default function AdminPage() {
           .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
         if (updateError) {
-          alert("Erro ao atualizar produto: " + updateError.message)
+          toast.error("Erro ao atualizar produto: " + updateError.message)
           return
         }
 
+        toast.success("Produto atualizado!")
         await fetchProducts()
       } catch (err) {
-        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+        toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       }
     },
     [fetchProducts]
   )
 
   const handleDeleteProduct = useCallback(
-    async (productId: string) => {
-      const confirmed = window.confirm("Tem certeza que deseja excluir este produto?")
-      if (!confirmed) return
+    (productId: string) => {
+      setConfirmState({
+        title: "Excluir produto?",
+        description: "Esta ação não pode ser desfeita. O produto será removido permanentemente do seu catálogo.",
+        confirmLabel: "Excluir",
+        action: async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Usuário não autenticado")
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error("Usuário não autenticado")
+            const { error: deleteError } = await supabase
+              .from("produtos")
+              .delete()
+              .eq("id", productId)
+              .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
-        const { error: deleteError } = await supabase
-          .from("produtos")
-          .delete()
-          .eq("id", productId)
-          .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
+            if (deleteError) {
+              toast.error("Erro ao excluir produto: " + deleteError.message)
+              return
+            }
 
-        if (deleteError) {
-          alert("Erro ao excluir produto: " + deleteError.message)
-          return
-        }
-
-        await fetchProducts()
-      } catch (err) {
-        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
-      }
+            toast.success("Produto excluído.")
+            await fetchProducts()
+          } catch (err) {
+            toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+          }
+        },
+      })
     },
     [fetchProducts]
   )
@@ -243,7 +286,7 @@ export default function AdminPage() {
             .update({ ultimo_video_em: new Date().toISOString() })
             .eq("id", productId)
 
-          if (updateError) alert("Erro ao atualizar produto: " + updateError.message)
+          if (updateError) toast.error("Erro ao atualizar produto: " + updateError.message)
           
           await fetchProducts()
           setIsSaving(false)
@@ -263,7 +306,7 @@ export default function AdminPage() {
           })
 
         if (uploadError) {
-          alert("Erro no upload: " + uploadError.message)
+          toast.error("Erro no upload: " + uploadError.message)
           setIsSaving(false)
           setIsCameraOpen(false)
           setCameraProduct(null)
@@ -277,7 +320,7 @@ export default function AdminPage() {
         const publicUrl = urlData?.publicUrl
 
         if (!publicUrl) {
-          alert("Erro: Não foi possível obter a URL pública do vídeo")
+          toast.error("Erro: Não foi possível obter a URL pública do vídeo")
           setIsSaving(false)
           setIsCameraOpen(false)
           setCameraProduct(null)
@@ -293,7 +336,7 @@ export default function AdminPage() {
           .eq("id", productId)
 
         if (updateError) {
-          alert("Erro ao atualizar produto: " + updateError.message)
+          toast.error("Erro ao atualizar produto: " + updateError.message)
           setIsSaving(false)
           setIsCameraOpen(false)
           setCameraProduct(null)
@@ -303,7 +346,7 @@ export default function AdminPage() {
         await fetchProducts()
 
       } catch (err) {
-        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+        toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
       } finally {
         setIsSaving(false)
         setIsCameraOpen(false)
@@ -314,36 +357,41 @@ export default function AdminPage() {
   )
 
   const handleDeleteVideo = useCallback(
-    async (product: AdminProduct) => {
-      const confirmed = window.confirm("Tem certeza que deseja excluir o vídeo deste produto?")
-      if (!confirmed) return
+    (product: AdminProduct) => {
+      setConfirmState({
+        title: "Excluir vídeo?",
+        description: `O vídeo de "${product.name}" será removido. Você poderá gravar um novo a qualquer momento.`,
+        confirmLabel: "Excluir vídeo",
+        action: async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Usuário não autenticado")
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error("Usuário não autenticado")
+            if (product.videoUrl) {
+              const url = new URL(product.videoUrl)
+              const pathParts = url.pathname.split("/")
+              const fileName = pathParts[pathParts.length - 1]
+              await supabase.storage.from("videos_produtos").remove([fileName])
+            }
 
-        if (product.videoUrl) {
-          const url = new URL(product.videoUrl)
-          const pathParts = url.pathname.split("/")
-          const fileName = pathParts[pathParts.length - 1]
-          await supabase.storage.from("videos_produtos").remove([fileName])
-        }
+            const { error: updateError } = await supabase
+              .from("produtos")
+              .update({ video_url: null, ultimo_video_em: null })
+              .eq("id", product.id)
+              .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
 
-        const { error: updateError } = await supabase
-          .from("produtos")
-          .update({ video_url: null, ultimo_video_em: null })
-          .eq("id", product.id)
-          .eq("dono_id", user.id) // TRAVA DE SEGURANÇA
+            if (updateError) {
+              toast.error("Erro ao excluir vídeo: " + updateError.message)
+              return
+            }
 
-        if (updateError) {
-          alert("Erro ao excluir vídeo: " + updateError.message)
-          return
-        }
-
-        await fetchProducts()
-      } catch (err) {
-        alert("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
-      }
+            toast.success("Vídeo excluído.")
+            await fetchProducts()
+          } catch (err) {
+            toast.error("Erro inesperado: " + (err instanceof Error ? err.message : String(err)))
+          }
+        },
+      })
     },
     [fetchProducts]
   )
@@ -361,7 +409,12 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background max-w-lg mx-auto">
-      <AdminHeader onMenuClick={() => setIsSidebarOpen(true)} onLogout={handleLogout} />
+      <AdminHeader
+        onMenuClick={() => setIsSidebarOpen(true)}
+        onLogout={handleLogout}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+      />
 
       <AdminSidebar
         isOpen={isSidebarOpen}
@@ -419,7 +472,7 @@ export default function AdminPage() {
 
           {activeTab === "categories" && <CategoryManagement />}
 
-          {activeTab === "customers" && <OrdersManagement onStockChange={fetchProducts} />}
+          {activeTab === "customers" && <OrdersManagement onStockChange={fetchProducts} refreshSignal={newOrderTick} />}
 
           {activeTab === "settings" && <SettingsForm />}
         </>
@@ -441,6 +494,19 @@ export default function AdminPage() {
         isOpen={isCameraOpen}
         onClose={handleCameraClose}
         onSave={handleVideoSave}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmState !== null}
+        title={confirmState?.title ?? ""}
+        description={confirmState?.description}
+        confirmLabel={confirmState?.confirmLabel}
+        onConfirm={async () => {
+          const action = confirmState?.action
+          setConfirmState(null)
+          if (action) await action()
+        }}
+        onCancel={() => setConfirmState(null)}
       />
     </div>
   )

@@ -25,6 +25,8 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
   const [zoomMin, setZoomMin] = useState(1)
   const [zoomMax, setZoomMax] = useState(5)
   const [zoomStep, setZoomStep] = useState(0.1)
+  const [supportsTorch, setSupportsTorch] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -51,7 +53,12 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 720 }, height: { ideal: 1280 } },
+          video: {
+            facingMode,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+            aspectRatio: { ideal: 9 / 16 },
+          },
           audio: true,
         })
 
@@ -78,6 +85,14 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
           setSupportsZoom(false)
           setZoomLevel(1)
         }
+
+        // Detect torch (flash) support
+        if (capabilities && "torch" in capabilities && capabilities.torch) {
+          setSupportsTorch(true)
+        } else {
+          setSupportsTorch(false)
+        }
+        setTorchOn(false)
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
@@ -125,6 +140,8 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
       setIsStopping(false)
       setSupportsZoom(false)
       setZoomLevel(1)
+      setSupportsTorch(false)
+      setTorchOn(false)
       zoomTrackRef.current = null
       // Clear timer
       if (timerRef.current) {
@@ -233,6 +250,18 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
     }
   }, [])
 
+  const handleToggleTorch = useCallback(async () => {
+    if (!zoomTrackRef.current || !supportsTorch) return
+    const next = !torchOn
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await zoomTrackRef.current.applyConstraints({ advanced: [{ torch: next } as any] })
+      setTorchOn(next)
+    } catch {
+      // Torch failed to apply, ignore
+    }
+  }, [supportsTorch, torchOn])
+
   const handleClose = useCallback(() => {
     if (isRecording) {
       // Discard recording
@@ -267,7 +296,7 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
         {/* Live video preview */}
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-contain"
           autoPlay
           playsInline
           muted
@@ -405,13 +434,21 @@ export function CameraModal({ product, isOpen, onClose, onSave }: CameraModalPro
 
         {/* Bottom controls */}
         <div className="relative z-20 flex items-center justify-center gap-8 px-6 pb-10 pt-4">
-          {/* Flash button */}
-          <button
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-black/30 backdrop-blur-md text-white transition-colors hover:bg-black/50 active:scale-95"
-            aria-label="Flash"
-          >
-            <Zap className="w-5 h-5" />
-          </button>
+          {/* Flash button — only when the device supports torch */}
+          {supportsTorch ? (
+            <button
+              onClick={handleToggleTorch}
+              className={`flex items-center justify-center w-12 h-12 rounded-full backdrop-blur-md transition-colors active:scale-95 ${
+                torchOn ? "bg-white text-neutral-900" : "bg-black/30 text-white hover:bg-black/50"
+              }`}
+              aria-label={torchOn ? "Desligar flash" : "Ligar flash"}
+              aria-pressed={torchOn}
+            >
+              <Zap className={`w-5 h-5 ${torchOn ? "fill-current" : ""}`} />
+            </button>
+          ) : (
+            <div className="w-12 h-12" aria-hidden="true" />
+          )}
 
           {/* Record button */}
           <button

@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Image from "next/image"
+import { ProductImage } from "./product-image"
 import { Plus, Pencil, Trash2, Package } from "lucide-react"
 import {
   ProductFormModal,
   type ProductFormData,
   type CategoryOption,
 } from "@/components/product-form-modal"
-import { getProductImage } from "@/lib/product-utils"
 import { supabase } from "@/lib/supabase"
 
 export interface ManagedProduct {
@@ -172,12 +171,11 @@ export function ProductManagement({
               className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
             >
               <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-muted">
-                <Image
-                  src={product.image || "https://images.unsplash.com/photo-1610397962076-02407a169a5b?q=80&w=200&auto=format&fit=crop"}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
+                <ProductImage
+                  src={product.image}
+                  name={product.name}
                   sizes="48px"
+                  compact
                 />
               </div>
 

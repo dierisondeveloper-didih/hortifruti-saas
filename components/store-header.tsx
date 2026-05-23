@@ -30,11 +30,11 @@ export function StoreHeader({
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           {logoUrl ? (
-            <div className="flex items-center justify-center h-10 w-10 overflow-hidden rounded-full border-2 border-white/30 bg-white">
+            <div className="flex items-center justify-center h-11 w-11 overflow-hidden rounded-xl">
               <img
                 src={logoUrl}
                 alt={storeName}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             </div>
           ) : (

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+import { ProductImage } from "./product-image"
 import { Video, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react"
 
 export interface AdminProduct {
@@ -81,12 +81,11 @@ export function AdminProductList({
             >
               {/* Thumbnail */}
               <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-muted">
-                <Image
+                <ProductImage
                   src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
+                  name={product.name}
                   sizes="56px"
+                  compact
                 />
               </div>
 

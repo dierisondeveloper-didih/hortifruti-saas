@@ -299,7 +299,7 @@ export default function StoreCatalog() {
 
       <section aria-label="Produtos disponiveis" className="pt-2">
         {isLoading && (
-          <div className="grid grid-cols-3 gap-2 px-3 pb-8 md:grid-cols-3 md:gap-3 md:px-4 lg:grid-cols-4 pt-2">
+          <div className="grid grid-cols-2 gap-3 px-3 pb-8 md:grid-cols-3 md:gap-3 md:px-4 lg:grid-cols-4 pt-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col rounded-2xl bg-card border border-border overflow-hidden shadow-sm">
                 <Skeleton className="aspect-[3/4] w-full rounded-none" />
@@ -356,7 +356,7 @@ export default function StoreCatalog() {
                 >
                   <CarouselContent className="-ml-3 pr-4">
                     {offerProducts.map((product) => (
-                      <CarouselItem key={product.id} className="pl-3 basis-[55%] sm:basis-[45%] md:basis-[30%] lg:basis-[22%]">
+                      <CarouselItem key={product.id} className="pl-3 basis-[88%] sm:basis-[60%] md:basis-[48%] lg:basis-[40%]">
                         <OfferCard
                           product={product}
                           onAddToCart={handleAddToCart}

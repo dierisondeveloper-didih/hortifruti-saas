@@ -127,11 +127,7 @@ export default function Home() {
       `}</style>
 
       <div
-        className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(145deg, var(--background) 0%, oklch(0.99 0.01 85) 52%, var(--background) 100%)",
-        }}
+        className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden bg-background"
       >
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
@@ -168,44 +164,33 @@ export default function Home() {
           {/* Ícone folha flutuante */}
           <div className="lp-fade-up" style={{ animationDelay: "0ms" }}>
             <div className="lp-icon-float">
-              <div
-                className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center overflow-hidden"
-                style={{ boxShadow: "0 8px 32px oklch(0.55 0.17 150 / 0.28)" }}
-              >
-                <Logo className="w-20 h-20" iconClassName="w-11 h-11" width={80} height={80} priority />
-              </div>
+              <Logo className="w-28 h-28" iconClassName="w-16 h-16" width={112} height={112} priority />
             </div>
           </div>
 
           {/* Título + subtítulo */}
           <div className="flex flex-col items-center gap-4">
             <h1
-              className="lp-fade-up text-4xl md:text-5xl font-black tracking-tight leading-tight"
+              className="lp-fade-up text-4xl md:text-5xl font-black tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-br from-emerald-700 to-primary dark:from-emerald-300 dark:to-emerald-500"
               style={{
                 animationDelay: "100ms",
-                background:
-                  "linear-gradient(135deg, oklch(0.30 0.13 150), oklch(0.55 0.17 150))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
               }}
             >
               Venda mais com o frescor do campo
             </h1>
             <p
-              className="lp-fade-up text-base md:text-lg font-medium max-w-sm mx-auto"
+              className="lp-fade-up text-base md:text-lg font-medium max-w-sm mx-auto text-muted-foreground"
               style={{
                 animationDelay: "200ms",
-                color: "oklch(0.50 0.02 150)",
               }}
             >
               A primeira plataforma de catálogos online focada em Hortifrutis com vídeos ao vivo.
             </p>
           </div>
 
-          {/* CTA Principal para Lojista */}
+          {/* CTA Principal para Lojista + argumento de venda */}
           <div
-            className="lp-fade-up w-full flex flex-col items-center gap-4 mt-4"
+            className="lp-fade-up w-full flex flex-col items-center gap-4"
             style={{ animationDelay: "300ms" }}
           >
             <button
@@ -219,20 +204,50 @@ export default function Home() {
               <Zap className="w-5 h-5 fill-current" />
               Solicitar Acesso
             </button>
+
+            {/* Mini-cards de features — reforço logo abaixo do CTA */}
+            <div className="w-full grid grid-cols-3 gap-2.5">
+              {features.map(({ icon: Icon, label }) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl bg-white/60 dark:bg-card/60 backdrop-blur-md border border-white/55 dark:border-border/50 shadow-sm"
+                >
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="text-[11px] font-semibold leading-tight text-muted-foreground">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
             <Link
               href="/login"
-              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition-colors mt-1"
             >
               <LogIn className="w-4 h-4" />
               Já é nosso cliente? Acessar área do lojista
             </Link>
           </div>
 
-          {/* Card Acesso Rápido para Clientes */}
+          {/* Divisor sutil separando lojista (acima) de cliente (abaixo) */}
           <div
-            className="lp-fade-up w-full rounded-2xl p-6 flex flex-col gap-5 text-left bg-white/65 dark:bg-card/65 backdrop-blur-md border border-white/60 dark:border-border/50 shadow-sm mt-4"
+            className="lp-fade-up w-full flex items-center gap-3 px-2"
+            style={{ animationDelay: "400ms" }}
+          >
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] font-medium text-muted-foreground/70 shrink-0">
+              é cliente de um Hortifruti?
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Card Acesso Rápido para Clientes — secundário */}
+          <div
+            className="lp-fade-up w-full rounded-2xl p-5 flex flex-col gap-4 text-left bg-white/65 dark:bg-card/65 backdrop-blur-md border border-white/60 dark:border-border/50 shadow-sm"
             style={{
-              animationDelay: "400ms",
+              animationDelay: "500ms",
               boxShadow: "0 2px 24px oklch(0.55 0.17 150 / 0.1)",
             }}
           >
@@ -266,44 +281,10 @@ export default function Home() {
               </button>
             </form>
           </div>
-
-          {/* Mini-cards de features */}
-          <div
-            className="lp-fade-up w-full grid grid-cols-3 gap-2.5"
-            style={{ animationDelay: "500ms" }}
-          >
-            {features.map(({ icon: Icon, label }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl bg-white/60 dark:bg-card/60 backdrop-blur-md border border-white/55 dark:border-border/50 shadow-sm"
-              >
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-secondary"
-                >
-                  <Icon
-                    className="w-4 h-4 text-primary"
-                  />
-                </div>
-                <span
-                  className="text-[11px] font-semibold leading-tight text-muted-foreground"
-                >
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Footer com estilo premium correspondente ao título */}
-        <div 
-          className="mt-10 relative z-10 font-bold"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.30 0.13 150), oklch(0.55 0.17 150))",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
+        {/* Footer */}
+        <div className="mt-10 relative z-10">
           <AppFooter />
         </div>
       </div>

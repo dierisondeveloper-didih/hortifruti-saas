@@ -71,11 +71,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 gap-0">
+      <style>{`
+        @keyframes login-float {
+          0%, 100% { transform: translateY(0px); }
+          50%      { transform: translateY(-8px); }
+        }
+        .login-icon-float { animation: login-float 3.5s ease-in-out infinite; }
+      `}</style>
       <div className="w-full max-w-sm flex-1 flex flex-col justify-center">
         {/* Logo and title */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-4 border border-border overflow-hidden">
-            <Logo className="w-16 h-16" iconClassName="w-8 h-8" width={64} height={64} priority />
+          <div className="login-icon-float mb-4">
+            <Logo className="w-24 h-24" iconClassName="w-12 h-12" width={96} height={96} priority />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Painel Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">

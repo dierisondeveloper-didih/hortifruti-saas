@@ -62,9 +62,10 @@ const STATUS_CONFIG = {
 
 interface OrdersManagementProps {
   onStockChange?: () => void
+  refreshSignal?: number
 }
 
-export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
+export function OrdersManagement({ onStockChange, refreshSignal }: OrdersManagementProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [tipoServico, setTipoServico] = useState<"entrega" | "retirada" | "ambos">("ambos")
   const [isLoading, setIsLoading] = useState(true)
@@ -123,34 +124,25 @@ export function OrdersManagement({ onStockChange }: OrdersManagementProps) {
   }, [])
 
   useEffect(() => {
+    if (refreshSignal !== undefined && refreshSignal > 0) {
+      fetchOrders()
+    }
+  }, [refreshSignal, fetchOrders])
+
+  useEffect(() => {
     fetchOrders()
 
-    // Configura Real-time para novos pedidos
-    const channel = supabase
-      .channel("pedidos_realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "pedidos",
-        },
-        async (payload) => {
-          // Só notifica se for para este lojista
-          const { data: { user } } = await supabase.auth.getUser()
-          if (payload.new.dono_id === user?.id) {
-            toast.success("🛒 Novo pedido recebido!", {
-              description: `Pedido de ${payload.new.cliente_nome}`,
-              duration: 10000,
-            })
-            fetchOrders()
-          }
-        }
-      )
-      .subscribe()
+    // Realtime de novos pedidos agora é tratado globalmente pelo hook
+    // useOrderNotifications (lib/use-order-notifications.ts), que toca som,
+    // mostra toast e funciona em qualquer aba do admin. Aqui apenas
+    // re-buscamos quando a aba de pedidos volta ao foco.
+    const handleFocus = () => {
+      if (document.visibilityState === "visible") fetchOrders()
+    }
+    document.addEventListener("visibilitychange", handleFocus)
 
     return () => {
-      supabase.removeChannel(channel)
+      document.removeEventListener("visibilitychange", handleFocus)
     }
   }, [fetchOrders])
 

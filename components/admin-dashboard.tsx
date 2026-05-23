@@ -14,6 +14,8 @@ import {
   TrendingUp,
   BarChart3,
   Calendar,
+  Share2,
+  QrCode,
 } from "lucide-react"
 import {
   LineChart,
@@ -54,6 +56,16 @@ export function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains("dark"))
+    check()
+    const observer = new MutationObserver(check)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -175,6 +187,35 @@ export function AdminDashboard() {
 
   if (!data) return null
 
+  // Onboarding: mostra primeiros passos enquanto a loja não decolou
+  const hasProducts = data.totalProdutos > 0
+  const hasVideos = data.totalProdutos > 0 && data.videosDesatualizados < data.totalProdutos
+  const hasOrders = data.totalPedidos > 0
+  const allDone = hasProducts && hasVideos && hasOrders
+  const showOnboarding = !allDone
+
+  const onboardingSteps = [
+    {
+      done: hasProducts,
+      title: "Cadastre seus produtos",
+      desc: "Monte seu catálogo com preços e fotos.",
+      icon: Package,
+    },
+    {
+      done: hasVideos,
+      title: "Grave os vídeos ao vivo",
+      desc: "Mostre o frescor dos seus produtos em vídeo.",
+      icon: VideoOff,
+    },
+    {
+      done: hasOrders,
+      title: "Compartilhe sua loja",
+      desc: "Envie seu link pelo WhatsApp e receba pedidos.",
+      icon: ExternalLink,
+    },
+  ]
+  const completedSteps = onboardingSteps.filter((s) => s.done).length
+
   const metrics = [
     {
       label: "Faturamento (7d)",
@@ -219,6 +260,52 @@ export function AdminDashboard() {
         </div>
       </div>
 
+      {/* Onboarding — primeiros passos (some quando a loja decola) */}
+      {showOnboarding && (
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">Primeiros passos</h3>
+            <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+              {completedSteps}/3 concluídos
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {onboardingSteps.map((step, i) => {
+              const Icon = step.icon
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    step.done
+                      ? "bg-primary/5 border-primary/10 opacity-60"
+                      : "bg-card border-border"
+                  }`}
+                >
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      step.done ? "bg-primary/15" : "bg-secondary"
+                    }`}
+                  >
+                    {step.done ? (
+                      <CheckCheck className="w-4 h-4 text-primary" />
+                    ) : (
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-bold ${step.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{step.desc}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Métricas em Grid */}
       <div className="grid grid-cols-2 gap-3">
         {metrics.map((metric) => {
@@ -259,27 +346,27 @@ export function AdminDashboard() {
                   <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.50 0.02 150 / 0.1)" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "oklch(0.85 0.02 150 / 0.12)" : "oklch(0.50 0.02 150 / 0.1)"} />
               <XAxis 
                 dataKey="name" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fill: 'oklch(0.50 0.02 150)' }}
+                tick={{ fontSize: 10, fill: isDark ? 'oklch(0.75 0.02 150)' : 'oklch(0.50 0.02 150)' }}
                 dy={10}
               />
               <YAxis hide />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: 'oklch(1 0 0 / 0.8)', 
+                  backgroundColor: isDark ? 'oklch(0.22 0.02 150 / 0.95)' : 'oklch(1 0 0 / 0.9)', 
                   backdropFilter: 'blur(8px)',
                   borderRadius: '12px',
-                  border: '1px solid oklch(0.50 0.02 150 / 0.1)',
+                  border: isDark ? '1px solid oklch(0.85 0.02 150 / 0.15)' : '1px solid oklch(0.50 0.02 150 / 0.1)',
                   fontSize: '12px',
                   fontWeight: 'bold',
-                  boxShadow: '0 4px 12px oklch(0 0 0 / 0.05)'
+                  boxShadow: '0 4px 12px oklch(0 0 0 / 0.15)'
                 }}
                 itemStyle={{ color: 'var(--primary)' }}
-                labelStyle={{ color: 'oklch(0.20 0.02 150)' }}
+                labelStyle={{ color: isDark ? 'oklch(0.92 0.01 150)' : 'oklch(0.20 0.02 150)' }}
                 formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Vendas']}
               />
               <Area 
@@ -343,7 +430,7 @@ export function AdminDashboard() {
             ) : (
               <Copy className="w-4 h-4 text-muted-foreground" />
             )}
-            {copied ? "Copiado!" : "Copiar Link"}
+            {copied ? "Copiado!" : "Copiar"}
           </button>
           <a
             href={storeUrl}
@@ -351,9 +438,47 @@ export function AdminDashboard() {
             rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 text-sm font-bold transition-all hover:brightness-110 active:scale-95"
           >
-            Acessar Loja
+            Acessar
           </a>
         </div>
+
+        {/* Compartilhar no WhatsApp + QR code */}
+        <div className="flex items-center gap-2">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`Confira nossa loja online: ${storeUrl}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#25D366] text-white shadow-sm text-sm font-bold transition-all hover:brightness-110 active:scale-95"
+          >
+            <Share2 className="w-4 h-4" />
+            Compartilhar no WhatsApp
+          </a>
+          <button
+            onClick={() => setShowQR((v) => !v)}
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-card border border-border shadow-sm text-sm font-bold transition-all hover:bg-secondary active:scale-95"
+            aria-label="Mostrar QR code"
+          >
+            <QrCode className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        {showQR && storeUrl && (
+          <div className="flex flex-col items-center gap-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="bg-white p-3 rounded-2xl shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(storeUrl)}`}
+                alt="QR code da loja"
+                width={180}
+                height={180}
+                className="rounded-lg"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+              Imprima e cole no balcão para os clientes acessarem sua loja pelo celular.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
